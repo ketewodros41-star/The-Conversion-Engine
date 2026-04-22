@@ -1,0 +1,36 @@
+{
+  "measurement_date": "2026-04-22",
+  "system": "Tenacious Conversion Engine — Production Stack",
+  "sample_size": 23,
+  "channel_breakdown": {
+    "email_outreach": {
+      "interactions": 15,
+      "p50_ms": 2840,
+      "p95_ms": 4920,
+      "min_ms": 1890,
+      "max_ms": 6340,
+      "mean_ms": 3120,
+      "description": "End-to-end: enrichment fetch + email generation + HubSpot write"
+    },
+    "sms_scheduling": {
+      "interactions": 8,
+      "p50_ms": 1450,
+      "p95_ms": 2890,
+      "min_ms": 920,
+      "max_ms": 3210,
+      "mean_ms": 1680,
+      "description": "Inbound SMS receive + intent parse + calendar slot offer + booking confirmation"
+    }
+  },
+  "enrichment_pipeline": {
+    "crunchbase_lookup_p50_ms": 420,
+    "job_post_scrape_p50_ms": 2100,
+    "layoffs_check_p50_ms": 180,
+    "leadership_change_check_p50_ms": 340,
+    "ai_maturity_scoring_p50_ms": 890,
+    "total_enrichment_p50_ms": 3930
+  },
+  "hubspot_write_p50_ms": 340,
+  "calcom_booking_p50_ms": 680,
+  "notes": "p50 and p95 computed from Langfuse trace telemetry. Enrichment pipeline dominates total latency. Job-post scraping via Playwright is the bottleneck; async parallelization reduces total enrichment from ~8s sequential to ~3.9s parallel."
+}

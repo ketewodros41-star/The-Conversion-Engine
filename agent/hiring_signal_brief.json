@@ -1,0 +1,193 @@
+{
+  "brief_version": "1.0",
+  "generated_at": "2026-04-22T09:14:33Z",
+  "generated_by": "Tenacious Conversion Engine — Enrichment Agent",
+  "prospect": {
+    "company_name": "NexusAI Labs",
+    "crunchbase_id": "cb_nexusai_2024",
+    "crunchbase_url": "https://www.crunchbase.com/organization/nexusai-labs",
+    "industry": "Enterprise Software / AI Infrastructure",
+    "sub_sector": "MLOps / AI Platform",
+    "employee_count": 47,
+    "employee_band": "15-80",
+    "hq_location": "Austin, TX, USA",
+    "founded_year": 2023,
+    "contact_synthetic": {
+      "name": "[SYNTHETIC] Alex Rivera",
+      "title": "CTO",
+      "email": "synthetic-alex@nexusai-labs.example.com",
+      "note": "SYNTHETIC PROFILE — not a real person. For challenge testing only."
+    }
+  },
+  "icp_classification": {
+    "primary_segment": "segment_1",
+    "segment_name": "Recently-funded Series A/B Startups",
+    "secondary_segment": "segment_4",
+    "secondary_segment_name": "Specialized Capability Gaps",
+    "classification_confidence": 0.91,
+    "classification_rationale": "Series B closed Jan 2026 ($18M) + job post velocity +240% in 60 days + AI maturity score 2 (emerging capability). Strong Segment 1 fit with Segment 4 overlay for ML platform engineering.",
+    "disqualifying_signals_present": false
+  },
+  "signals": {
+    "funding_event": {
+      "signal_type": "funding_event",
+      "source": "Crunchbase ODM",
+      "crunchbase_id": "cb_nexusai_2024",
+      "present": true,
+      "details": {
+        "round_type": "Series B",
+        "amount_usd": 18000000,
+        "date": "2026-01-14",
+        "days_since_close": 98,
+        "within_180_day_window": true,
+        "investors": ["Accel Partners", "Lightspeed Venture Partners"],
+        "lead_investor": "Accel Partners"
+      },
+      "confidence": 0.97,
+      "confidence_tier": "high",
+      "signal_weight": "HIGH",
+      "brief_language": "NexusAI Labs closed an $18M Series B on January 14, 2026 — 98 days ago. Fresh budget, likely in active team-building mode.",
+      "pitch_implication": "Budget is confirmed and runway clock is running. Frame as time-sensitive capacity support."
+    },
+    "job_post_velocity": {
+      "signal_type": "job_post_velocity",
+      "source": "Wellfound public job feed (scraped via Playwright, April 2026 snapshot)",
+      "present": true,
+      "details": {
+        "open_roles_current": 12,
+        "open_roles_60_days_ago": 5,
+        "velocity_change_pct": 140,
+        "velocity_direction": "up",
+        "engineering_roles": [
+          "Senior ML Engineer",
+          "Platform Engineer (Kubernetes)",
+          "Data Platform Engineer",
+          "LLM Infrastructure Engineer",
+          "Senior Backend Engineer (Python/Go)",
+          "DevOps / MLOps Engineer"
+        ],
+        "ai_adjacent_role_count": 4,
+        "ai_adjacent_pct_of_engineering": 0.57
+      },
+      "confidence": 0.88,
+      "confidence_tier": "high",
+      "signal_weight": "HIGH",
+      "brief_language": "12 open engineering roles, up from 5 sixty days ago (+140%). More than half are AI-adjacent (ML Eng, LLM Infra, Data Platform). Hiring velocity is outpacing what a 47-person company can recruit in-house.",
+      "pitch_implication": "Classic Segment 1 buying trigger. In-house recruiting cannot keep up with post-Series B headcount demands."
+    },
+    "layoff_event": {
+      "signal_type": "layoff_event",
+      "source": "layoffs.fyi CC-BY dataset",
+      "present": false,
+      "details": {
+        "layoff_in_last_120_days": false,
+        "most_recent_layoff": null
+      },
+      "confidence": 0.95,
+      "confidence_tier": "high",
+      "signal_weight": "HIGH",
+      "brief_language": "No layoff events in the last 120 days. Not a Segment 2 (restructuring) signal.",
+      "pitch_implication": "Absence of layoff signal confirms this is a growth play, not a cost-cutting engagement."
+    },
+    "leadership_change": {
+      "signal_type": "leadership_change",
+      "source": "Crunchbase + LinkedIn public profile check",
+      "present": false,
+      "details": {
+        "new_cto_in_90_days": false,
+        "new_vp_eng_in_90_days": false,
+        "current_cto": "Alex Rivera (co-founder, tenure: 3 years)",
+        "current_vp_eng": "None (CTO fills role)"
+      },
+      "confidence": 0.82,
+      "confidence_tier": "medium",
+      "signal_weight": "MEDIUM",
+      "brief_language": "No leadership change detected. Founding CTO in place. Not a Segment 3 (leadership transition) trigger.",
+      "pitch_implication": "No narrow vendor-reassessment window. Focus on Segment 1 and Segment 4 angles."
+    },
+    "tech_stack": {
+      "signal_type": "tech_stack",
+      "source": "BuiltWith public data + GitHub org activity",
+      "present": true,
+      "details": {
+        "detected_stack": ["Python", "FastAPI", "PostgreSQL", "Kubernetes", "Terraform", "Ray", "dbt", "Snowflake"],
+        "ai_ml_tools": ["Ray", "vLLM (inferred from job posts)", "Weights & Biases (inferred from job posts)"],
+        "github_org_url": "https://github.com/nexusai-labs",
+        "github_recent_activity": "Active — 23 commits in last 30 days on inference-optimization and model-training repos",
+        "bench_match_score": 0.89,
+        "tenacious_bench_match": ["Python data engineers", "MLOps / infrastructure engineers", "Platform engineers (K8s/Terraform)"]
+      },
+      "confidence": 0.84,
+      "confidence_tier": "high",
+      "signal_weight": "MEDIUM",
+      "brief_language": "Python/FastAPI/K8s/Ray stack. Strong bench match: Tenacious has available Python data engineers, MLOps engineers, and K8s platform engineers on bench.",
+      "pitch_implication": "Bench-to-brief match is confirmed. Can commit to Python/MLOps capacity pending bench availability check."
+    },
+    "ai_maturity": {
+      "signal_type": "ai_maturity",
+      "source": "Composite: job posts, GitHub org, press, team page",
+      "score": 2,
+      "score_label": "Emerging AI Function",
+      "score_description": "Active AI work in progress. Multiple AI-adjacent roles open. GitHub activity on AI/ML repos. Early executive commitment to AI as product core. Has not yet established a named Head of AI or VP Data.",
+      "per_signal_breakdown": [
+        {
+          "signal": "AI-adjacent open roles",
+          "weight": "HIGH",
+          "evidence": "4 of 7 engineering openings are AI-adjacent (ML Eng, LLM Infra, Data Platform, Applied Science)",
+          "contribution": "strong positive"
+        },
+        {
+          "signal": "Named AI/ML leadership",
+          "weight": "HIGH",
+          "evidence": "No Head of AI or VP Data on public team page. CTO manages AI direction.",
+          "contribution": "absent — gap"
+        },
+        {
+          "signal": "GitHub org activity",
+          "weight": "MEDIUM",
+          "evidence": "23 commits in 30 days on inference-optimization repo. Public ML tooling work.",
+          "contribution": "moderate positive"
+        },
+        {
+          "signal": "Executive commentary",
+          "weight": "MEDIUM",
+          "evidence": "CTO referenced 'building the AI-native platform stack' in Feb 2026 TechCrunch interview",
+          "contribution": "moderate positive"
+        },
+        {
+          "signal": "Modern data/ML stack",
+          "weight": "LOW",
+          "evidence": "dbt, Snowflake, Ray detected via BuiltWith and job descriptions",
+          "contribution": "positive"
+        }
+      ],
+      "confidence": 0.78,
+      "confidence_tier": "medium",
+      "confidence_note": "Score of 2 inferred from a mix of high-weight (roles) and medium-weight (GitHub, exec commentary) inputs. No single definitive indicator. Language should ask rather than assert on AI leadership maturity.",
+      "pitch_language_guidance": {
+        "segment_1_language": "Scale your AI team faster than in-house hiring can support — you're clearly building AI-native infrastructure and the recruiting bottleneck for ML engineers is real at this stage.",
+        "segment_4_eligibility": true,
+        "segment_4_language": "Your infrastructure signals active ML platform work — Tenacious has engineers who've built similar inference optimization layers at Series B and C stage companies."
+      }
+    }
+  },
+  "bench_to_brief_check": {
+    "passed": true,
+    "required_roles": ["Python/MLOps Engineers", "Platform Engineers (K8s)", "Data Engineers"],
+    "bench_availability": {
+      "python_engineers": 4,
+      "mlops_engineers": 2,
+      "platform_engineers_k8s": 3,
+      "data_engineers": 3
+    },
+    "commitment_safe": true,
+    "commitment_note": "Bench availability confirmed from bench summary (updated 2026-04-21). Safe to reference 2-3 engineer availability. DO NOT commit to specific headcount without delivery lead sign-off.",
+    "hard_constraint_applied": true
+  },
+  "outreach_brief_summary": "NexusAI Labs closed an $18M Series B 98 days ago and has nearly tripled open engineering roles since. With 4 of 7 openings AI-adjacent and active GitHub commits on inference optimization, they're building AI-native infrastructure faster than a 47-person team can recruit. The typical bottleneck at this stage isn't budget — it's finding ML engineers who can ship production-quality systems. Tenacious has Python/MLOps engineers available with exactly this background.",
+  "confidence_summary": {
+    "overall_confidence": 0.87,
+    "highest_confidence_signal": "funding_event (0.97)",
+    "lowest_confidence_signal": "ai_maturity (0.78 — medium confidence, should ask rather than assert)"
+  }
+}

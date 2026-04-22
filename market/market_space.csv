@@ -1,0 +1,16 @@
+sector,size_band,ai_readiness_band,cell_population,avg_funding_12m_usd,avg_hiring_velocity_pct,bench_match_score,priority_rank,notes
+AI Infrastructure / MLOps,15-80,2-3,42,14200000,87,0.91,1,Top priority: post-Series B AI infra companies scaling ML teams. Near-perfect bench match (Python/MLOps). High hiring velocity = immediate need.
+Enterprise SaaS (B2B),50-200,2-3,68,22400000,45,0.78,2,Mid-market SaaS companies building AI features. Strong funding signal. Bench match good on Python/data. Segment 1+4 crossover.
+Fintech / Insurtech,30-150,1-2,54,18700000,38,0.71,3,Post-Series B fintech building data platforms. Slightly lower AI maturity but high funding velocity. Segment 1 primary.
+HealthTech / BioTech,20-100,1-2,31,28900000,52,0.65,4,Large funding rounds but lower AI maturity. Specialized ML skills needed (domain-specific). Partial bench match.
+E-commerce / RetailTech,50-300,1-2,47,11200000,28,0.62,5,Lower AI urgency but post-layoff restructuring signals common. Segment 2 opportunity.
+DevTools / Infrastructure,15-60,3,28,9800000,112,0.88,6,High AI maturity but smaller funding. Very high hiring velocity. Segment 4 consulting over talent outsourcing.
+EdTech / LearningTech,20-80,1,38,7600000,21,0.58,7,Lower AI maturity and funding. Not priority for Segment 4. Segment 1 only if recently funded.
+Cybersecurity,30-120,2,35,19200000,44,0.69,8,Growing AI maturity in security. Leadership change common. Segment 3 opportunity when CTO changes.
+Gaming / Entertainment,50-250,2,22,15800000,31,0.55,9,AI maturity growing (AI NPCs, content gen) but Tenacious bench match moderate. Secondary priority.
+Climate / CleanTech,15-80,1-2,19,21400000,29,0.61,10,Large rounds but small teams. Lower hiring velocity. Long-tail opportunity.
+AI Infrastructure / MLOps,80-300,2-3,18,38200000,41,0.84,11,Larger AI infra companies: scaling existing teams not building from scratch. Segment 2 or 4.
+Enterprise SaaS (B2B),200-1000,1-2,31,54200000,18,0.72,12,Mid-market enterprise: restructuring signal common. Segment 2 primary. Lower urgency.
+Fintech / Insurtech,200-1000,2-3,24,72800000,12,0.68,13,Late-stage fintech: cost optimization mode. Segment 2. Longer sales cycle.
+Healthcare SaaS,30-150,1,42,16300000,23,0.55,14,Lower AI maturity. Standard data engineering needs. Lower priority.
+Logistics / Supply Chain,50-300,1-2,28,12700000,31,0.61,15,Growing AI interest but lower maturity. Niche bench match needed.

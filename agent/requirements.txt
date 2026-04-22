@@ -1,0 +1,64 @@
+# Tenacious Conversion Engine — Python Requirements
+# Python >= 3.11 required
+
+# Core agent framework
+anthropic>=0.40.0          # Claude Sonnet 4.6 for eval tier
+openai>=1.50.0             # OpenRouter fallback (dev tier)
+httpx>=0.27.0              # Async HTTP client
+
+# Email channel
+resend>=2.0.0              # Primary email service (Resend free tier)
+# OR: mailersend>=1.5.0   # Alternative: MailerSend free tier
+
+# SMS channel
+africastalking>=1.2.0      # Africa's Talking sandbox (free tier)
+
+# CRM integration
+hubspot-api-client>=9.0.0  # HubSpot Developer Sandbox MCP
+
+# Calendar integration
+caldav>=1.3.0              # Cal.com CalDAV API
+icalendar>=5.0.0           # iCal format parsing
+
+# Enrichment pipeline
+playwright>=1.44.0         # Job post scraping (respects robots.txt)
+beautifulsoup4>=4.12.0     # HTML parsing
+lxml>=5.1.0                # XML/HTML parser
+requests>=2.32.0           # Synchronous HTTP (Crunchbase ODM, layoffs.fyi)
+aiohttp>=3.9.0             # Async HTTP
+
+# Data processing
+pandas>=2.2.0              # Data manipulation (Crunchbase ODM, layoffs.fyi CSV)
+numpy>=1.26.0              # Numerical operations
+scipy>=1.13.0              # Statistical tests (two-proportion z-test for Delta A)
+
+# Observability
+langfuse>=2.30.0           # Per-trace cost attribution, OpenTelemetry
+opentelemetry-sdk>=1.24.0  # OTel base
+
+# API server
+fastapi>=0.111.0           # Webhook handlers (Resend, Africa's Talking)
+uvicorn>=0.29.0            # ASGI server
+pydantic>=2.7.0            # Data validation
+
+# Storage and caching
+redis>=5.0.0               # Conversation state (ephemeral; can use in-memory fallback)
+aiofiles>=23.2.0           # Async file I/O
+
+# Testing
+pytest>=8.2.0
+pytest-asyncio>=0.23.0
+httpx>=0.27.0              # Test client
+
+# Evaluation harness
+tau2bench @ git+https://github.com/sierra-research/tau2-bench.git@main  # tau2-bench
+
+# Report generation
+reportlab>=4.2.0           # PDF generation for memo.pdf
+jinja2>=3.1.0              # Template rendering
+
+# Utilities
+python-dotenv>=1.0.0       # Environment variable management
+tenacity>=8.3.0            # Retry logic
+structlog>=24.2.0          # Structured logging
+pytz>=2024.1               # Timezone handling (EU/US/East Africa)
