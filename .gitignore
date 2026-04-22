@@ -1,0 +1,22 @@
+# External benchmark (clone separately: git clone https://github.com/sierra-research/tau2-bench.git)
+tau2-bench/
+tau2bench.zip
+tau2-bench-main/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Environment (never commit real keys)
+.env
+
+# Playwright browsers
+playwright-browsers/
+
+# Report outputs
+report/interim_report.pdf
+report/*.pdf

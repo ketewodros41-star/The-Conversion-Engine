@@ -9,6 +9,11 @@ import sys
 import asyncio
 from datetime import datetime, timezone
 
+# Force UTF-8 output on Windows
+if sys.stdout.encoding != "utf-8":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+
 # Load .env
 try:
     from dotenv import load_dotenv
@@ -16,9 +21,9 @@ try:
 except ImportError:
     pass  # dotenv optional; set env vars manually
 
-PASS = "✅"
-FAIL = "❌"
-WARN = "⚠️ "
+PASS = "PASS"
+FAIL = "FAIL"
+WARN = "WARN"
 results = []
 
 
