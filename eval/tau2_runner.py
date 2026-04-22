@@ -20,8 +20,8 @@ VALID_SLICES = ["dev", "held_out"]
 
 def main():
     parser = argparse.ArgumentParser(description="Run τ²-Bench evaluation")
-    parser.add_argument("--model", default="claude-sonnet-4-6",
-                        help="LLM model to use")
+    parser.add_argument("--model", default="gemini-2.0-flash-free",
+                        help="LLM model alias: gemini-2.0-flash-free (free), gemini-2.0-flash, deepseek-v3, qwen3-8b, or full litellm name")
     parser.add_argument("--temperature", type=float, default=0.0,
                         help="Model temperature (pin at 0.0 for scored runs)")
     parser.add_argument("--mechanism", default="none",
