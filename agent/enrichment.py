@@ -12,7 +12,12 @@ from typing import Optional
 import aiohttp
 import pandas as pd
 import structlog
-from playwright.async_api import async_playwright
+try:
+    from playwright.async_api import async_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    async_playwright = None
+    PLAYWRIGHT_AVAILABLE = False
 
 log = structlog.get_logger()
 
@@ -102,6 +107,9 @@ class EnrichmentPipeline:
         Scrape public job listings from Wellfound / BuiltIn / company careers page.
         Respects robots.txt. Does not log in. Does not bypass captchas.
         """
+        if not PLAYWRIGHT_AVAILABLE:
+            log.warning("playwright not installed, skipping job post scraping")
+            return {"jobs": [], "source": "playwright_unavailable"}
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             context = await browser.new_context(
