@@ -31,7 +31,7 @@ Your FastAPI server (`agent/main.py`) needs a stable public URL so Resend, Afric
 
 Render will build and deploy. After ~2 minutes you get a URL like:
 ```
-https://tenacious-conversion-engine.onrender.com
+https://the-conversion-engine-znn0.onrender.com
 ```
 This is your **webhook base URL**. Copy it.
 
@@ -68,25 +68,25 @@ STAFF_SINK_NUMBER=+254700000000
 
 ## 4. Register the Webhook URL with Each Service
 
-Once deployed, register `https://tenacious-conversion-engine.onrender.com` as the webhook URL in all four services:
+Once deployed, register `https://the-conversion-engine-znn0.onrender.com` as the webhook URL in all four services:
 
 ### Resend — Email Reply Handling
 - Resend dashboard → **Webhooks** → Add endpoint
-- URL: `https://tenacious-conversion-engine.onrender.com/webhook/email/inbound`
+- URL: `https://the-conversion-engine-znn0.onrender.com/webhook/email/inbound`
 - Events: `email.delivered`, `email.bounced`, `email.complained`
 
 ### Africa's Talking — SMS Callbacks
 - AT dashboard → **SMS** → **Shortcodes / Sender IDs** → your sender → **Callback URL**
-- URL: `https://tenacious-conversion-engine.onrender.com/webhook/sms/inbound`
+- URL: `https://the-conversion-engine-znn0.onrender.com/webhook/sms/inbound`
 
 ### Cal.com — Booking Events
 - Cal.com → **Settings** → **Developer** → **Webhooks** → New webhook
-- URL: `https://tenacious-conversion-engine.onrender.com/webhook/calcom`
+- URL: `https://the-conversion-engine-znn0.onrender.com/webhook/calcom`
 - Events: `BOOKING_CREATED`, `BOOKING_CANCELLED`
 
 ### HubSpot — Contact Activity
 - HubSpot → **Settings** → **Integrations** → **Private Apps** → your app → **Webhooks**
-- URL: `https://tenacious-conversion-engine.onrender.com/webhook/hubspot`
+- URL: `https://the-conversion-engine-znn0.onrender.com/webhook/hubspot`
 - Subscriptions: `contact.creation`, `contact.propertyChange`
 
 ---
@@ -95,7 +95,7 @@ Once deployed, register `https://tenacious-conversion-engine.onrender.com` as th
 
 ```bash
 # Health check
-curl https://tenacious-conversion-engine.onrender.com/health
+curl https://the-conversion-engine-znn0.onrender.com/health
 
 # Expected response
 {"status": "ok", "live_mode": false}
