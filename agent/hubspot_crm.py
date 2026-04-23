@@ -16,19 +16,12 @@ log = structlog.get_logger()
 class HubSpotCRM:
     """HubSpot MCP integration for Tenacious lead management."""
 
-    def __init__(self, *, require_mcp: bool = False):
+    BASE_URL = "https://api.hubapi.com"
+
+    def __init__(self):
         self.access_token = os.getenv("HUBSPOT_ACCESS_TOKEN")
-        self.transport_mode = os.getenv("HUBSPOT_TRANSPORT", "mcp").lower()
-        self.mcp_url = os.getenv("HUBSPOT_MCP_URL", "")
-        self.require_mcp = require_mcp
         if not self.access_token:
             log.warning("hubspot_token_missing", msg="Set HUBSPOT_ACCESS_TOKEN in .env")
-        if self.require_mcp and (self.transport_mode != "mcp" or not self.mcp_url):
-            log.warning(
-                "hubspot_mcp_required_but_not_configured",
-                transport_mode=self.transport_mode,
-                mcp_url_set=bool(self.mcp_url),
-            )
 
     def _headers(self) -> dict:
         return {
@@ -43,29 +36,15 @@ class HubSpotCRM:
         return {"id": contact.get("id"), **properties}
 
     async def _request(self, method: str, path: str, *, json: Optional[dict] = None) -> dict:
-        if self.require_mcp and (self.transport_mode != "mcp" or not self.mcp_url):
-            raise RuntimeError("HubSpot MCP transport is required by this agent but is not configured.")
-
         async with httpx.AsyncClient() as client:
-            if self.transport_mode == "mcp" and self.mcp_url:
-                resp = await client.post(
-                    self.mcp_url,
-                    json={
-                        "jsonrpc": "2.0",
-                        "id": f"hubspot-{datetime.now(timezone.utc).timestamp()}",
-                        "method": "hubspot.request",
-                        "params": {"method": method, "path": path, "json": json or {}},
-                    },
-                )
-                resp.raise_for_status()
-                payload = resp.json()
-                if "error" in payload:
-                    raise RuntimeError(f"MCP HubSpot request failed: {payload['error']}")
-                return payload.get("result", {})
-
-            raise RuntimeError(
-                "HubSpot transport must be MCP. Set HUBSPOT_TRANSPORT=mcp and HUBSPOT_MCP_URL."
+            resp = await client.request(
+                method,
+                f"{self.BASE_URL}{path}",
+                headers=self._headers(),
+                json=json,
             )
+            resp.raise_for_status()
+            return resp.json() if resp.content else {}
 
     async def upsert_contact(self, email: str, properties: dict) -> dict:
         search_resp = await self._request(
