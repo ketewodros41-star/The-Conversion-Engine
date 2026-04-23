@@ -164,6 +164,8 @@ STAFF_SINK_NUMBER=+254700000000          # Required: receives all SMS in sandbox
 
 # === CRM ===
 HUBSPOT_ACCESS_TOKEN=pat-na1-...         # HubSpot Developer Sandbox private app
+HUBSPOT_TRANSPORT=mcp                    # Required: agent writes contacts through HubSpot MCP
+HUBSPOT_MCP_URL=http://localhost:8080/mcp # Required MCP gateway endpoint
 
 # === CALENDAR ===
 CALCOM_URL=http://localhost:3000

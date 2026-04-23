@@ -1,15 +1,17 @@
 """
-Tenacious Conversion Engine — SMS Handler
+Tenacious Conversion Engine - SMS Handler
 Secondary channel: Africa's Talking sandbox (free tier).
-ONLY for warm leads who have replied by email and want scheduling via SMS.
+Only for warm leads who have replied by email and want scheduling via SMS.
 LIVE_MODE=false routes to staff sink.
 """
 
 import os
-from datetime import datetime, timezone
 from typing import Optional
+
 import africastalking
 import structlog
+
+from event_bus import EventBus
 
 log = structlog.get_logger()
 
@@ -18,15 +20,25 @@ SENDER_ID = os.getenv("AT_SENDER_ID", "TENACIOUS")
 
 
 class SMSHandler:
-    """Africa's Talking SMS integration for warm-lead scheduling (secondary channel)."""
+    """Africa's Talking SMS integration for warm-lead scheduling."""
 
-    def __init__(self, live_mode: bool = False):
+    def __init__(self, live_mode: bool = False, event_bus: Optional[EventBus] = None):
         self.live_mode = live_mode
+        self.event_bus = event_bus or EventBus()
         africastalking.initialize(
             username=os.getenv("AT_USERNAME", "sandbox"),
-            api_key=os.getenv("AT_API_KEY", "")
+            api_key=os.getenv("AT_API_KEY", ""),
         )
         self.sms = africastalking.SMS
+
+    def on_inbound_message(self, handler) -> None:
+        self.event_bus.subscribe("sms.inbound.received", handler)
+
+    def on_stop(self, handler) -> None:
+        self.event_bus.subscribe("sms.stop.received", handler)
+
+    def on_booking_completed(self, handler) -> None:
+        self.event_bus.subscribe("sms.booking.completed", handler)
 
     def _get_recipient(self, to_number: str) -> str:
         if self.live_mode:
@@ -35,7 +47,7 @@ class SMSHandler:
         return STAFF_SINK_NUMBER
 
     async def send_scheduling_sms(self, to_number: str, message: str) -> dict:
-        """Send scheduling SMS to warm lead. Routes to sink unless LIVE_MODE=true."""
+        """Send scheduling SMS to a warm lead only."""
         recipient = self._get_recipient(to_number)
         prefix = "[SANDBOX] " if not self.live_mode else ""
         try:
@@ -46,54 +58,77 @@ class SMSHandler:
             )
             log.info("sms_sent", to=recipient, live_mode=self.live_mode)
             return {"sent": True, "response": response}
-        except Exception as e:
-            log.error("sms_send_failed", error=str(e))
-            return {"sent": False, "error": str(e)}
+        except Exception as exc:
+            log.error("sms_send_failed", error=str(exc), to=to_number)
+            return {"sent": False, "error": str(exc)}
 
     async def handle_stop(self, from_number: str) -> None:
-        """Process STOP command — mandatory compliance."""
+        """Process STOP command and emit downstream event."""
         log.info("sms_stop_received", number=from_number)
-        # Confirm opt-out
+        await self.event_bus.emit("sms.stop.received", {
+            "channel": "sms",
+            "from_number": from_number,
+            "command": "STOP",
+        })
         try:
             self.sms.send(
-                message="You've been unsubscribed. You will not receive further messages from Tenacious. Reply START to re-subscribe.",
+                message=(
+                    "You've been unsubscribed. You will not receive further messages "
+                    "from Tenacious. Reply START to re-subscribe."
+                ),
                 recipients=[self._get_recipient(from_number)],
                 sender_id=SENDER_ID,
             )
-        except Exception as e:
-            log.error("stop_confirmation_failed", error=str(e))
+        except Exception as exc:
+            log.error("stop_confirmation_failed", error=str(exc), number=from_number)
 
-    async def handle_scheduling_message(self, contact: dict, message: str,
-                                         calendar) -> dict:
-        """Parse scheduling intent from SMS and book a call if possible."""
+    async def handle_scheduling_message(self, contact: dict, message: str, calendar) -> dict:
+        """Route inbound SMS into the scheduling flow for a warm lead."""
         msg_lower = message.lower()
+        await self.event_bus.emit("sms.inbound.received", {
+            "channel": "sms",
+            "contact": contact,
+            "message": message,
+        })
 
-        # Parse slot preference from SMS
-        if any(w in msg_lower for w in ["yes", "works", "good", "confirm", "book", "first", "option 1"]):
+        affirmative = ["yes", "works", "good", "confirm", "book", "first", "option 1"]
+        alternate = ["other", "different", "can't", "what about", "how about"]
+
+        if any(token in msg_lower for token in affirmative):
             slots = await calendar.get_available_slots(days_ahead=7)
             if slots:
                 slot = slots[0]
                 event = await calendar.book_slot(
                     slot_id=slot["id"],
-                    attendee_email=contact.get("email"),
-                    attendee_name=f"{contact.get('firstname', '')} {contact.get('lastname', '')}",
+                    attendee_email=contact.get("email", ""),
+                    attendee_name=f"{contact.get('firstname', '')} {contact.get('lastname', '')}".strip(),
                     attendee_phone=contact.get("phone"),
                 )
-                # Confirm via SMS
-                tz_label = _infer_timezone_label(contact)
                 await self.send_scheduling_sms(
                     to_number=contact.get("phone", ""),
-                    message=f"Confirmed! Your discovery call with Tenacious is scheduled for {slot['display']} {tz_label}. Check your email for the calendar invite.",
+                    message=(
+                        f"Confirmed. Your discovery call with Tenacious is scheduled for "
+                        f"{slot['display']} {_infer_timezone_label(contact)}. "
+                        "Check your email for the calendar invite."
+                    ),
                 )
-                return {"booked": True, "call_time": slot["display"], "event_id": event.get("id")}
+                result = {"booked": True, "call_time": slot["display"], "event_id": event.get("id")}
+                await self.event_bus.emit("sms.booking.completed", {
+                    "channel": "sms",
+                    "contact": contact,
+                    "booking": result,
+                })
+                return result
 
-        # Prospect wants a different time
-        elif any(w in msg_lower for w in ["other", "different", "can't", "what about", "how about"]):
+        if any(token in msg_lower for token in alternate):
             slots = await calendar.get_available_slots(days_ahead=14)
-            slot_options = "\n".join([f"• {s['display']}" for s in slots[1:4]])
+            slot_options = "\n".join(f"- {slot['display']}" for slot in slots[1:4])
             await self.send_scheduling_sms(
                 to_number=contact.get("phone", ""),
-                message=f"No problem — here are a few more options:\n{slot_options}\nWhich works?",
+                message=(
+                    "No problem. Here are a few more options:\n"
+                    f"{slot_options}\nWhich works?"
+                ),
             )
             return {"booked": False, "next_action": "waiting_for_slot_selection"}
 
@@ -101,11 +136,9 @@ class SMSHandler:
 
 
 def _infer_timezone_label(contact: dict) -> str:
-    """Infer timezone from contact location for scheduling confirmation."""
-    location = contact.get("city", "").lower() + contact.get("country", "").lower()
-    if any(x in location for x in ["nairobi", "addis", "ethiopia", "kenya", "east africa"]):
+    location = f"{contact.get('city', '')} {contact.get('country', '')}".lower()
+    if any(token in location for token in ["nairobi", "addis", "ethiopia", "kenya", "east africa"]):
         return "EAT"
-    elif any(x in location for x in ["london", "berlin", "paris", "amsterdam", "europe"]):
+    if any(token in location for token in ["london", "berlin", "paris", "amsterdam", "europe"]):
         return "CET/BST"
-    else:
-        return "ET"  # Default to US Eastern for Tenacious primary market
+    return "ET"

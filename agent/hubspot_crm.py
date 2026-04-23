@@ -1,27 +1,34 @@
 """
-Tenacious Conversion Engine — HubSpot CRM Integration
-Uses HubSpot MCP server. Every conversation event is written to HubSpot.
-All records include crunchbase_id and last_enriched_at timestamp.
+Tenacious Conversion Engine - HubSpot CRM Integration
+Normalizes contact objects and records downstream events for auditability.
 """
 
 import os
 from datetime import datetime, timezone
 from typing import Optional
+
 import httpx
 import structlog
 
 log = structlog.get_logger()
 
-HUBSPOT_BASE_URL = "https://api.hubapi.com"
-
 
 class HubSpotCRM:
-    """HubSpot Developer Sandbox integration for Tenacious lead management."""
+    """HubSpot MCP integration for Tenacious lead management."""
 
-    def __init__(self):
+    def __init__(self, *, require_mcp: bool = False):
         self.access_token = os.getenv("HUBSPOT_ACCESS_TOKEN")
+        self.transport_mode = os.getenv("HUBSPOT_TRANSPORT", "mcp").lower()
+        self.mcp_url = os.getenv("HUBSPOT_MCP_URL", "")
+        self.require_mcp = require_mcp
         if not self.access_token:
             log.warning("hubspot_token_missing", msg="Set HUBSPOT_ACCESS_TOKEN in .env")
+        if self.require_mcp and (self.transport_mode != "mcp" or not self.mcp_url):
+            log.warning(
+                "hubspot_mcp_required_but_not_configured",
+                transport_mode=self.transport_mode,
+                mcp_url_set=bool(self.mcp_url),
+            )
 
     def _headers(self) -> dict:
         return {
@@ -29,85 +36,133 @@ class HubSpotCRM:
             "Content-Type": "application/json",
         }
 
-    async def upsert_contact(self, email: str, properties: dict) -> dict:
-        """Create or update a contact. Returns the HubSpot contact object."""
+    def _normalize_contact(self, contact: Optional[dict]) -> Optional[dict]:
+        if not contact:
+            return None
+        properties = contact.get("properties", {})
+        return {"id": contact.get("id"), **properties}
+
+    async def _request(self, method: str, path: str, *, json: Optional[dict] = None) -> dict:
+        if self.require_mcp and (self.transport_mode != "mcp" or not self.mcp_url):
+            raise RuntimeError("HubSpot MCP transport is required by this agent but is not configured.")
+
         async with httpx.AsyncClient() as client:
-            # Search for existing contact
-            search_resp = await client.post(
-                f"{HUBSPOT_BASE_URL}/crm/v3/objects/contacts/search",
-                headers=self._headers(),
-                json={
-                    "filterGroups": [{
-                        "filters": [{"propertyName": "email", "operator": "EQ", "value": email}]
-                    }]
-                }
-            )
-            existing = search_resp.json().get("results", [])
-
-            # Required fields: all non-null, enrichment timestamp present
-            enriched_props = {
-                **properties,
-                "last_enriched_at": datetime.now(timezone.utc).isoformat(),
-                "data_source": "tenacious_conversion_engine",
-                "is_draft": "true",  # Branded content marked draft
-            }
-
-            if existing:
-                contact_id = existing[0]["id"]
-                resp = await client.patch(
-                    f"{HUBSPOT_BASE_URL}/crm/v3/objects/contacts/{contact_id}",
-                    headers=self._headers(),
-                    json={"properties": enriched_props}
-                )
-                log.info("hubspot_contact_updated", contact_id=contact_id, email=email)
-                return resp.json()
-            else:
+            if self.transport_mode == "mcp" and self.mcp_url:
                 resp = await client.post(
-                    f"{HUBSPOT_BASE_URL}/crm/v3/objects/contacts",
-                    headers=self._headers(),
-                    json={"properties": {"email": email, **enriched_props}}
+                    self.mcp_url,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": f"hubspot-{datetime.now(timezone.utc).timestamp()}",
+                        "method": "hubspot.request",
+                        "params": {"method": method, "path": path, "json": json or {}},
+                    },
                 )
-                log.info("hubspot_contact_created", email=email)
-                return resp.json()
+                resp.raise_for_status()
+                payload = resp.json()
+                if "error" in payload:
+                    raise RuntimeError(f"MCP HubSpot request failed: {payload['error']}")
+                return payload.get("result", {})
+
+            raise RuntimeError(
+                "HubSpot transport must be MCP. Set HUBSPOT_TRANSPORT=mcp and HUBSPOT_MCP_URL."
+            )
+
+    async def upsert_contact(self, email: str, properties: dict) -> dict:
+        search_resp = await self._request(
+            "POST",
+            "/crm/v3/objects/contacts/search",
+            json={
+                "filterGroups": [{
+                    "filters": [{"propertyName": "email", "operator": "EQ", "value": email}]
+                }]
+            },
+        )
+        existing = search_resp.get("results", [])
+
+        enriched_props = {
+            **properties,
+            "last_enriched_at": datetime.now(timezone.utc).isoformat(),
+            "data_source": "tenacious_conversion_engine",
+            "is_draft": "true",
+        }
+
+        if existing:
+            contact_id = existing[0]["id"]
+            resp = await self._request(
+                "PATCH",
+                f"/crm/v3/objects/contacts/{contact_id}",
+                json={"properties": enriched_props},
+            )
+            log.info("hubspot_contact_updated", contact_id=contact_id, email=email)
+            return self._normalize_contact(resp)
+
+        resp = await self._request(
+            "POST",
+            "/crm/v3/objects/contacts",
+            json={"properties": {"email": email, **enriched_props}},
+        )
+        log.info("hubspot_contact_created", email=email)
+        return self._normalize_contact(resp)
 
     async def find_contact_by_email(self, email: str) -> Optional[dict]:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{HUBSPOT_BASE_URL}/crm/v3/objects/contacts/search",
-                headers=self._headers(),
-                json={
-                    "filterGroups": [{
-                        "filters": [{"propertyName": "email", "operator": "EQ", "value": email}]
-                    }],
-                    "properties": ["email", "firstname", "lastname", "company",
-                                   "phone", "icp_segment", "warm_lead", "sms_consent"]
-                }
-            )
-            results = resp.json().get("results", [])
-            return results[0] if results else None
+        resp = await self._request(
+            "POST",
+            "/crm/v3/objects/contacts/search",
+            json={
+                "filterGroups": [{
+                    "filters": [{"propertyName": "email", "operator": "EQ", "value": email}]
+                }],
+                "properties": [
+                    "email",
+                    "firstname",
+                    "lastname",
+                    "company",
+                    "phone",
+                    "icp_segment",
+                    "warm_lead",
+                    "sms_consent",
+                    "crunchbase_id",
+                    "booking_id",
+                    "booking_status",
+                    "booking_start_time",
+                ],
+            },
+        )
+        results = resp.get("results", [])
+        return self._normalize_contact(results[0]) if results else None
 
     async def find_contact_by_phone(self, phone: str) -> Optional[dict]:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{HUBSPOT_BASE_URL}/crm/v3/objects/contacts/search",
-                headers=self._headers(),
-                json={
-                    "filterGroups": [{
-                        "filters": [{"propertyName": "phone", "operator": "EQ", "value": phone}]
-                    }]
-                }
-            )
-            results = resp.json().get("results", [])
-            return results[0] if results else None
+        resp = await self._request(
+            "POST",
+            "/crm/v3/objects/contacts/search",
+            json={
+                "filterGroups": [{
+                    "filters": [{"propertyName": "phone", "operator": "EQ", "value": phone}]
+                }],
+                "properties": [
+                    "email",
+                    "firstname",
+                    "lastname",
+                    "company",
+                    "phone",
+                    "warm_lead",
+                    "sms_consent",
+                    "crunchbase_id",
+                    "booking_id",
+                    "booking_status",
+                ],
+            },
+        )
+        results = resp.get("results", [])
+        return self._normalize_contact(results[0]) if results else None
 
     async def update_contact(self, contact_id: str, properties: dict) -> dict:
-        async with httpx.AsyncClient() as client:
-            resp = await client.patch(
-                f"{HUBSPOT_BASE_URL}/crm/v3/objects/contacts/{contact_id}",
-                headers=self._headers(),
-                json={"properties": properties}
-            )
-            return resp.json()
+        resp = await self._request(
+            "PATCH",
+            f"/crm/v3/objects/contacts/{contact_id}",
+            json={"properties": properties},
+        )
+        return self._normalize_contact(resp)
 
     async def update_contact_by_phone(self, phone: str, properties: dict) -> Optional[dict]:
         contact = await self.find_contact_by_phone(phone)
@@ -116,25 +171,61 @@ class HubSpotCRM:
         return None
 
     async def log_activity(self, contact_id: str, activity_type: str, details: dict) -> dict:
-        """Log a conversation event against a contact (audit trail)."""
-        async with httpx.AsyncClient() as client:
-            note_body = f"[TENACIOUS ENGINE] {activity_type}\n" + \
-                        "\n".join(f"{k}: {v}" for k, v in details.items())
-            resp = await client.post(
-                f"{HUBSPOT_BASE_URL}/crm/v3/objects/notes",
-                headers=self._headers(),
-                json={
-                    "properties": {
-                        "hs_note_body": note_body,
-                        "hs_timestamp": datetime.now(timezone.utc).isoformat(),
-                    },
-                    "associations": [{
-                        "to": {"id": contact_id},
-                        "types": [{"associationCategory": "HUBSPOT_DEFINED",
-                                   "associationTypeId": 202}]
-                    }]
-                }
-            )
-            log.info("hubspot_activity_logged", contact_id=contact_id,
-                     activity_type=activity_type)
-            return resp.json()
+        note_body = f"[TENACIOUS ENGINE] {activity_type}\n" + "\n".join(
+            f"{key}: {value}" for key, value in details.items()
+        )
+        resp = await self._request(
+            "POST",
+            "/crm/v3/objects/notes",
+            json={
+                "properties": {
+                    "hs_note_body": note_body,
+                    "hs_timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+                "associations": [{
+                    "to": {"id": contact_id},
+                    "types": [{
+                        "associationCategory": "HUBSPOT_DEFINED",
+                        "associationTypeId": 202,
+                    }],
+                }],
+            },
+        )
+        log.info("hubspot_activity_logged", contact_id=contact_id, activity_type=activity_type)
+        return resp
+
+    async def mark_warm_lead(self, contact_id: str, *, sms_consent: bool, source: str) -> dict:
+        return await self.update_contact(contact_id, {
+            "warm_lead": "true",
+            "sms_consent": "true" if sms_consent else "false",
+            "warm_lead_source": source,
+            "warm_lead_at": datetime.now(timezone.utc).isoformat(),
+        })
+
+    async def record_booking_completion(self, contact_id: str, booking: dict) -> dict:
+        booking_id = booking.get("booking_id") or booking.get("id")
+        update = await self.update_contact(contact_id, {
+            "booking_id": booking_id,
+            "booking_status": booking.get("status", "confirmed"),
+            "booking_start_time": booking.get("start_time") or booking.get("call_time", ""),
+            "warm_lead": "true",
+        })
+        await self.log_activity(contact_id, "booking_completed", {
+            "booking_id": booking_id,
+            "status": booking.get("status", "confirmed"),
+            "start_time": booking.get("start_time") or booking.get("call_time", ""),
+            "channel": booking.get("channel", "unknown"),
+        })
+        return update
+
+    async def record_email_bounce(self, recipient: str, bounce: dict) -> Optional[dict]:
+        contact = await self.find_contact_by_email(recipient)
+        if not contact:
+            return None
+        await self.update_contact(contact["id"], {
+            "email_bounced": "true",
+            "email_bounce_reason": bounce.get("reason", "unknown"),
+            "email_bounced_at": datetime.now(timezone.utc).isoformat(),
+        })
+        await self.log_activity(contact["id"], "email_bounce", bounce)
+        return contact
