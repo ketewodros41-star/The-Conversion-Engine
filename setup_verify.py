@@ -126,10 +126,12 @@ def verify_langfuse():
             secret_key=os.environ["LANGFUSE_SECRET_KEY"],
             host=os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com"),
         )
-        trace = lf.trace(name="tenacious-verify-test", metadata={"verify": True})
-        trace.score(name="verify", value=1.0)
+        # Langfuse v4 API
+        ok = lf.auth_check()
+        trace_id = lf.create_trace_id()
+        lf.create_score(trace_id=trace_id, name="verify", value=1.0)
         lf.flush()
-        check("Langfuse", True, f"trace_id={trace.id}")
+        check("Langfuse", ok, f"auth_check={ok} trace_id={trace_id}")
     except KeyError as e:
         check("Langfuse", False, f"{e} not set in .env")
     except Exception as e:
