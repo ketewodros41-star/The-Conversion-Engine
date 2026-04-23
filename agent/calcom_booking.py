@@ -1,13 +1,16 @@
 """
-Tenacious Conversion Engine — Cal.com Booking Flow
+Tenacious Conversion Engine - Cal.com Booking Flow
 Self-hosted Cal.com (Docker Compose). Books discovery calls with Tenacious delivery leads.
 """
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
+
 import httpx
 import structlog
+
+from event_bus import EventBus
 
 log = structlog.get_logger()
 
@@ -17,7 +20,13 @@ DISCOVERY_CALL_EVENT_TYPE_ID = int(os.getenv("CALCOM_EVENT_TYPE_ID", "1"))
 
 
 class CalComBooking:
-    """Cal.com CalDAV/REST API integration for discovery call booking."""
+    """Cal.com REST integration with downstream booking-completion hooks."""
+
+    def __init__(self, event_bus: Optional[EventBus] = None):
+        self.event_bus = event_bus or EventBus()
+
+    def on_booking_completed(self, handler) -> None:
+        self.event_bus.subscribe("calcom.booking.completed", handler)
 
     def _headers(self) -> dict:
         return {
@@ -26,8 +35,6 @@ class CalComBooking:
         }
 
     async def get_available_slots(self, days_ahead: int = 7) -> list:
-        """Fetch available discovery call slots for the next N days."""
-        from datetime import timedelta
         start = datetime.now(timezone.utc)
         end = start + timedelta(days=days_ahead)
 
@@ -41,38 +48,48 @@ class CalComBooking:
                         "startTime": start.isoformat(),
                         "endTime": end.isoformat(),
                         "timeZone": "America/New_York",
-                    }
+                    },
                 )
+                resp.raise_for_status()
                 slots_data = resp.json().get("slots", {})
-
-                # Flatten and format slots
                 formatted = []
-                for date, day_slots in slots_data.items():
-                    for slot in day_slots[:2]:  # Max 2 slots per day
+                for _, day_slots in slots_data.items():
+                    for slot in day_slots[:2]:
                         dt = datetime.fromisoformat(slot["time"].replace("Z", "+00:00"))
                         formatted.append({
                             "id": slot["time"],
                             "datetime": slot["time"],
-                            "display": dt.strftime("%A, %B %d at %-I:%M %p ET"),
+                            "display": dt.strftime("%A, %B %d at %I:%M %p ET").lstrip("0"),
                         })
-                return formatted[:6]  # Return max 6 options
-
-            except Exception as e:
-                log.error("calcom_slots_fetch_failed", error=str(e))
-                # Return synthetic slots for demo/sandbox
+                return formatted[:6]
+            except Exception as exc:
+                log.error("calcom_slots_fetch_failed", error=str(exc))
                 return [
-                    {"id": "slot_1", "datetime": "2026-04-28T19:00:00Z",
-                     "display": "Monday, April 28 at 3:00 PM ET"},
-                    {"id": "slot_2", "datetime": "2026-04-29T15:00:00Z",
-                     "display": "Tuesday, April 29 at 11:00 AM ET"},
-                    {"id": "slot_3", "datetime": "2026-04-30T18:00:00Z",
-                     "display": "Wednesday, April 30 at 2:00 PM ET"},
+                    {
+                        "id": "slot_1",
+                        "datetime": "2026-04-28T19:00:00Z",
+                        "display": "Monday, April 28 at 3:00 PM ET",
+                    },
+                    {
+                        "id": "slot_2",
+                        "datetime": "2026-04-29T15:00:00Z",
+                        "display": "Tuesday, April 29 at 11:00 AM ET",
+                    },
+                    {
+                        "id": "slot_3",
+                        "datetime": "2026-04-30T18:00:00Z",
+                        "display": "Wednesday, April 30 at 2:00 PM ET",
+                    },
                 ]
 
-    async def book_slot(self, slot_id: str, attendee_email: str,
-                         attendee_name: str, attendee_phone: Optional[str] = None,
-                         context_brief: Optional[str] = None) -> dict:
-        """Book a discovery call slot. Attaches context brief for Tenacious delivery lead."""
+    async def book_slot(
+        self,
+        slot_id: str,
+        attendee_email: str,
+        attendee_name: str,
+        attendee_phone: Optional[str] = None,
+        context_brief: Optional[str] = None,
+    ) -> dict:
         async with httpx.AsyncClient() as client:
             try:
                 payload = {
@@ -96,16 +113,25 @@ class CalComBooking:
                     headers=self._headers(),
                     json=payload,
                 )
+                resp.raise_for_status()
                 booking = resp.json()
-                log.info("discovery_call_booked",
-                         attendee=attendee_email,
-                         slot=slot_id,
-                         booking_id=booking.get("id"))
+                booking["attendee_email"] = attendee_email
+                booking["attendee_phone"] = attendee_phone or ""
+                log.info(
+                    "discovery_call_booked",
+                    attendee=attendee_email,
+                    slot=slot_id,
+                    booking_id=booking.get("id"),
+                )
                 return booking
-
-            except Exception as e:
-                log.error("calcom_booking_failed", error=str(e))
-                return {"id": f"synthetic_booking_{slot_id}", "error": str(e)}
+            except Exception as exc:
+                log.error("calcom_booking_failed", error=str(exc))
+                return {
+                    "id": f"synthetic_booking_{slot_id}",
+                    "attendee_email": attendee_email,
+                    "attendee_phone": attendee_phone or "",
+                    "error": str(exc),
+                }
 
     async def get_booking_status(self, booking_id: str) -> dict:
         async with httpx.AsyncClient() as client:
@@ -114,7 +140,26 @@ class CalComBooking:
                     f"{CALCOM_BASE_URL}/api/v1/bookings/{booking_id}",
                     headers=self._headers(),
                 )
+                resp.raise_for_status()
                 return resp.json()
-            except Exception as e:
-                log.error("calcom_status_fetch_failed", error=str(e))
-                return {"status": "unknown", "error": str(e)}
+            except Exception as exc:
+                log.error("calcom_status_fetch_failed", error=str(exc))
+                return {"status": "unknown", "error": str(exc)}
+
+    async def process_booking_webhook(self, payload: dict) -> dict:
+        booking = payload.get("booking", payload)
+        event = {
+            "booking_id": booking.get("id"),
+            "status": str(payload.get("status", booking.get("status", ""))).lower(),
+            "event_type": str(payload.get("event", payload.get("trigger_event", ""))).lower(),
+            "attendee_email": booking.get("attendee_email") or booking.get("email"),
+            "attendee_phone": booking.get("attendee_phone") or booking.get("phone"),
+            "start_time": booking.get("startTime") or booking.get("start"),
+            "raw": payload,
+        }
+        if event["status"] in {"confirmed", "accepted", "completed"} or event["event_type"] in {
+            "booking.completed",
+            "booking_confirmed",
+        }:
+            await self.event_bus.emit("calcom.booking.completed", event)
+        return event
