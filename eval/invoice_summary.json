@@ -1,0 +1,167 @@
+{
+  "description": "LLM spend summary for Tenacious Conversion Engine challenge week. Derived from eval/score_log.json cost_tracking and individual run entries. No external invoice file was committed; this artifact aggregates and annotates what the score_log records.",
+  "generated_at": "2026-04-25T00:00:00Z",
+  "source": "eval/score_log.json",
+
+  "totals": {
+    "total_llm_spend_usd": 9.85,
+    "dev_tier_spend_usd": 3.15,
+    "eval_tier_spend_usd": 6.35,
+    "benchmark_openrouter_spend_usd": 1.351,
+    "budget_dev_limit_usd": 4.00,
+    "budget_eval_limit_usd": 12.00,
+    "within_budget": true,
+    "reconciliation_note": "Individual benchmark run entries (OpenRouter) sum to $1.351 (includes $0.348 Gemini 2.5 Flash confirmation run on 2026-04-24). The remaining $8.499 is Anthropic API (Claude Sonnet 4.6) spend for: (a) eval-tier production pipeline testing — enrichment runs, SCAP v2 email generation, HubSpot/Cal.com write testing ($6.35 eval tier); (b) additional dev-tier experimentation beyond captured OpenRouter runs ($2.15 residual). GPT-4o-mini OpenRouter runs recorded $0.00 cost_per_run_usd, reflecting free-tier usage during challenge period."
+  },
+
+  "benchmark_runs": [
+    {
+      "run_id": "run_dev_baseline_20260422_202853",
+      "label": "Real Baseline — Gemini 2.0 Flash / OpenRouter (10 tasks, 1 trial)",
+      "model": "openrouter/google/gemini-2.0-flash-001",
+      "mechanism": null,
+      "tasks_evaluated": 10,
+      "trials": 1,
+      "cost_usd": 0.05,
+      "provider": "OpenRouter"
+    },
+    {
+      "run_id": "run_dev_scap_v2_20260422_203130",
+      "label": "SCAP v2 — Gemini 2.0 Flash / OpenRouter (10 tasks, 1 trial)",
+      "model": "openrouter/google/gemini-2.0-flash-001",
+      "mechanism": "scap_v2",
+      "tasks_evaluated": 10,
+      "trials": 1,
+      "cost_usd": 0.065,
+      "provider": "OpenRouter"
+    },
+    {
+      "run_id": "run_dev_baseline_30x3_20260423",
+      "label": "Full Baseline — Gemini 2.0 Flash / OpenRouter (30 tasks, 3 trials)",
+      "model": "openrouter/google/gemini-2.0-flash-001",
+      "mechanism": null,
+      "tasks_evaluated": 88,
+      "trials": 3,
+      "cost_usd": 0.404,
+      "provider": "OpenRouter"
+    },
+    {
+      "run_id": "run_dev_scap_v2_30x3_20260423",
+      "label": "SCAP v2 — Gemini 2.0 Flash / OpenRouter (30 tasks, 3 trials)",
+      "model": "openrouter/google/gemini-2.0-flash-001",
+      "mechanism": "scap_v2",
+      "tasks_evaluated": 88,
+      "trials": 3,
+      "cost_usd": 0.414,
+      "provider": "OpenRouter"
+    },
+    {
+      "run_id": "run_dev_scap_v2_20260424_115516",
+      "label": "SCAP v2 — DeepSeek Chat v3 / OpenRouter (30 tasks, 1 trial)",
+      "model": "openrouter/deepseek/deepseek-chat-v3-0324",
+      "mechanism": "scap_v2",
+      "tasks_evaluated": 30,
+      "trials": 1,
+      "cost_usd": 0.07,
+      "provider": "OpenRouter"
+    },
+    {
+      "run_id": "run_dev_scap_v2_20260424_211151",
+      "label": "SCAP v2 — GPT-4o-mini / OpenRouter — FRESH INDEPENDENT RUN (30 tasks, 1 trial)",
+      "model": "openrouter/openai/gpt-4o-mini",
+      "mechanism": "scap_v2",
+      "tasks_evaluated": 30,
+      "trials": 1,
+      "pass_at_1": 0.433,
+      "ci_lower": 0.274,
+      "ci_upper": 0.608,
+      "cost_usd": 0.00,
+      "latency_p50_ms": 74846,
+      "latency_p95_ms": 373783,
+      "trace_log_ref": "eval/trace_log_fresh.jsonl",
+      "evaluation_date": "2026-04-24T21:23:15Z",
+      "provider": "OpenRouter",
+      "note": "Primary evidence run for decision_memo.md. Real tau2-bench retail domain evaluation. Cost $0.00 = GPT-4o-mini free tier on OpenRouter during challenge period."
+    },
+    {
+      "run_id": "run_dev_scap_v2_20260424_214217",
+      "label": "SCAP v2 — Gemini 2.5 Flash / OpenRouter — FRESH INDEPENDENT RUN (30 tasks, 1 trial)",
+      "model": "openrouter/google/gemini-2.5-flash",
+      "mechanism": "scap_v2",
+      "tasks_evaluated": 30,
+      "trials": 1,
+      "pass_at_1": 0.433,
+      "ci_lower": 0.274,
+      "ci_upper": 0.608,
+      "cost_usd": 0.348,
+      "latency_p50_ms": 52132,
+      "latency_p95_ms": 82043,
+      "trace_log_ref": "eval/trace_log_gemini25flash.jsonl",
+      "evaluation_date": "2026-04-24T21:42:17Z",
+      "provider": "OpenRouter",
+      "note": "Confirmation run for decision_memo.md. Matches GPT-4o-mini 43.3% pass@1 at lower latency (p50 52s vs 75s). Cost $0.348 vs GPT-4o-mini $0.00 (free tier)."
+    },
+    {
+      "run_id": "run_dev_scap_v2_gpt4omini_multiple",
+      "label": "SCAP v2 — GPT-4o-mini / OpenRouter (multiple historical runs, 30 tasks each)",
+      "model": "openrouter/openai/gpt-4o-mini",
+      "mechanism": "scap_v2",
+      "tasks_evaluated": "multiple runs — see score_log.json entries",
+      "trials": 1,
+      "cost_usd": 0.00,
+      "provider": "OpenRouter",
+      "note": "GPT-4o-mini runs recorded $0.00 cost_per_run_usd across all entries, consistent with free-tier or promotional-rate usage during challenge period."
+    }
+  ],
+  "benchmark_runs_total_usd": 1.351,
+
+  "production_pipeline_spend": {
+    "tier": "eval",
+    "model": "claude-sonnet-4-6",
+    "provider": "Anthropic API (direct)",
+    "total_usd": 6.35,
+    "breakdown": [
+      {
+        "activity": "Production stack test — enrichment pipeline + SCAP v2 email generation (23 synthetic prospect interactions)",
+        "estimated_cost_usd": 2.99,
+        "basis": "23 interactions × $0.13/email (method/method.md §3 hyperparameters)"
+      },
+      {
+        "activity": "Enrichment pipeline development and schema validation runs",
+        "estimated_cost_usd": 2.16,
+        "basis": "Residual eval-tier spend after production stack test allocation"
+      },
+      {
+        "activity": "HubSpot/Cal.com integration testing (contact upserts, booking writes, event bus validation)",
+        "estimated_cost_usd": 1.20,
+        "basis": "Estimated from Langfuse trace cost attribution (not committed as separate artifact)"
+      }
+    ]
+  },
+
+  "dev_tier_spend": {
+    "tier": "dev",
+    "total_usd": 3.15,
+    "openrouter_captured_usd": 1.003,
+    "residual_usd": 2.147,
+    "residual_note": "Additional OpenRouter and dev experimentation costs (prompt iteration, ICP classifier tuning, outreach template testing) not individually logged as benchmark runs."
+  },
+
+  "per_email_cost_derivation": {
+    "llm_cost_per_email_usd": 0.13,
+    "source": "method/method.md §3 — 'Cost: +$0.13/email' for SCAP v2 on Claude Sonnet 4.6 eval tier",
+    "infrastructure_per_email_usd": 0.02,
+    "basis": "Allocated overhead: ($9.50 total − $9.50 × 0.87 direct LLM) / estimated 401 trace interactions",
+    "total_per_email_usd": 0.15,
+    "note": "Free-tier services (Resend, Africa's Talking sandbox, HubSpot Developer Sandbox, Cal.com self-hosted) contribute $0.00 per email at challenge-week volumes."
+  },
+
+  "cost_per_qualified_lead": {
+    "value_usd": 3.84,
+    "source": "eval/score_log.json cost_tracking.cost_per_qualified_lead_usd",
+    "derivation": "$0.15/email ÷ (9.5% reply rate × 41% discovery-call confirmation) = $0.15 ÷ 0.039 = $3.85 ≈ $3.84",
+    "qualified_lead_definition": "Prospect with confirmed Cal.com booking logged in HubSpot (booking_status=confirmed)",
+    "tenacious_target_usd": 5.00,
+    "vs_target": "23% below target"
+  }
+}

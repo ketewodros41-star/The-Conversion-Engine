@@ -42,8 +42,11 @@ TRACE_LOG_PATH = Path("eval/trace_log.jsonl")
 # OpenRouter model aliases — cheap options that support tool use
 OPENROUTER_MODELS = {
     "gemini-2.0-flash": "openrouter/google/gemini-2.0-flash-001",
-    "gemini-2.0-flash-free": "openrouter/google/gemini-2.0-flash-001",  # free tier deprecated; use flash-001
+    "gemini-2.0-flash-free": "openrouter/google/gemini-2.0-flash-001",
     "gemini-2.0-flash-lite": "openrouter/google/gemini-2.0-flash-lite-001",
+    "gemini-2.5-flash": "openrouter/google/gemini-2.5-flash",
+    "gemini-2.5-flash-lite": "openrouter/google/gemini-2.5-flash-lite",
+    "gemini-2.5-pro": "openrouter/google/gemini-2.5-pro",
     "qwen3-8b": "openrouter/qwen/qwen3-8b",
     "qwen3-30b": "openrouter/qwen/qwen3-30b-a3b",
     "deepseek-v3": "openrouter/deepseek/deepseek-chat",
@@ -207,7 +210,7 @@ class Tau2BenchHarness:
                 "passed": _reward(sim) >= 1.0,
                 "turns": len(sim.get("messages", [])),
                 "latency_ms": int((sim.get("duration") or sim.get("duration_seconds") or 0) * 1000),
-                "cost_usd": sim.get("cost_usd") or (sim.get("agent_cost", 0) + sim.get("user_cost", 0)),
+                "cost_usd": sim.get("cost_usd") or ((sim.get("agent_cost") or 0) + (sim.get("user_cost") or 0)),
                 "model": self.model,
                 "temperature": self.temperature,
                 "mechanism": self.mechanism,
