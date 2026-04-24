@@ -10,50 +10,97 @@
       "signal_type": "funding_event",
       "source": "Committed public-signal catalog",
       "present": true,
+      "observed_at": "2026-04-24T16:30:00+00:00",
+      "source_attribution": [
+        "https://nexusai-labs.example"
+      ],
       "round_type": "Series B",
       "amount_usd": 18000000,
       "date": "2026-01-14T00:00:00+00:00",
+      "days_since_close": 100,
+      "within_180_day_window": true,
       "confidence": 0.97,
-      "confidence_tier": "high"
+      "confidence_tier": "high",
+      "brief_language": "NexusAI Labs closed a Series B on 2026-01-14T00:00:00+00:00."
     },
     "job_post_velocity": {
       "signal_type": "job_post_velocity",
       "source": "Committed public job-post snapshots",
       "present": true,
-      "open_roles_today": 12,
-      "open_roles_60_days_ago": 5,
-      "velocity_delta_60_days": 7,
-      "velocity_window_days": 60,
+      "observed_at": "2026-04-22T00:00:00+00:00",
       "source_attribution": [
         "https://wellfound.com/company/nexusai-labs/jobs",
         "https://builtin.com/company/nexusai-labs/jobs",
         "https://www.linkedin.com/company/nexusai-labs/jobs/"
       ],
+      "total_open_roles": 12,
+      "engineering_roles": 10,
+      "ai_adjacent_roles": 4,
+      "open_roles_today": 12,
+      "open_roles_60_days_ago": 5,
+      "velocity_delta_60_days": 7,
+      "velocity_window_days": 60,
+      "velocity_label": "growing",
       "historical_snapshot_at": "2026-02-22T00:00:00+00:00",
       "current_snapshot_at": "2026-04-22T00:00:00+00:00",
+      "role_titles": [
+        "Senior ML Engineer",
+        "LLM Infrastructure Engineer",
+        "Data Platform Engineer",
+        "Applied Scientist",
+        "Platform Engineer",
+        "Backend Engineer",
+        "DevOps Engineer",
+        "MLOps Engineer",
+        "Software Engineer",
+        "Site Reliability Engineer"
+      ],
+      "scraped_at": "2026-04-22T00:00:00+00:00",
       "confidence": 0.88,
-      "confidence_tier": "high"
+      "confidence_tier": "high",
+      "confidence_note": "Computed from persisted snapshots rather than inferred backfill.",
+      "brief_language": "Found 12 public open roles versus 5 roles 60 days earlier, including 4 AI-adjacent roles."
     },
     "layoff_event": {
       "signal_type": "layoff_event",
       "source": "layoffs.fyi snapshot csv",
       "present": false,
+      "observed_at": "2026-04-24T16:30:00+00:00",
+      "source_attribution": [],
       "confidence": 0.9,
-      "confidence_tier": "high"
+      "confidence_tier": "high",
+      "brief_language": "No layoff events found in the last 120 days."
     },
     "leadership_change": {
       "signal_type": "leadership_change",
       "source": "Committed public-signal catalog",
       "present": false,
+      "observed_at": "2026-04-24T16:30:00+00:00",
       "new_leaders": [],
       "source_attribution": [],
       "confidence": 0.75,
-      "confidence_tier": "medium"
+      "confidence_tier": "medium",
+      "brief_language": "No recent engineering leadership change detected."
+    },
+    "ai_leadership": {
+      "signal_type": "ai_leadership",
+      "source": "Committed public-signal catalog",
+      "present": false,
+      "observed_at": "2026-04-24T16:30:00+00:00",
+      "leaders": [],
+      "source_attribution": [],
+      "confidence": 0.7,
+      "confidence_tier": "medium",
+      "brief_language": "No named AI/ML leadership detected in available public records."
     },
     "tech_stack": {
       "signal_type": "tech_stack",
       "source": "Committed public-signal catalog",
       "present": true,
+      "observed_at": "2026-04-24T16:30:00+00:00",
+      "source_attribution": [
+        "https://nexusai-labs.example"
+      ],
       "technologies": [
         "Python",
         "FastAPI",
@@ -77,72 +124,97 @@
         ]
       },
       "confidence": 0.8,
-      "confidence_tier": "medium"
+      "confidence_tier": "medium",
+      "brief_language": "Observed public stack signals: Python, FastAPI, Kubernetes, Ray, dbt."
     },
     "github_activity": {
       "signal_type": "github_activity",
       "source": "Committed public-signal catalog",
       "present": true,
+      "observed_at": "2026-04-24T16:30:00+00:00",
+      "source_attribution": [
+        "https://github.com/nexusai-labs"
+      ],
       "github_url": "https://github.com/nexusai-labs",
+      "open_source_news_mentions": 0,
+      "inference_basis": "GitHub URL on record: https://github.com/nexusai-labs",
       "confidence": 0.75,
-      "confidence_tier": "medium"
+      "confidence_tier": "medium",
+      "brief_language": "Public GitHub org activity detected: https://github.com/nexusai-labs."
     },
     "exec_commentary": {
       "signal_type": "exec_commentary",
       "source": "Committed public-signal catalog",
       "present": true,
+      "observed_at": "2026-04-24T16:30:00+00:00",
+      "source_attribution": [
+        "https://www.crunchbase.com/funding_round/nexusai-labs-series-b",
+        "https://techcrunch.com/2026/02/nexusai-labs-cto"
+      ],
       "items_found": 2,
       "sample_items": [
         {
           "title": "NexusAI closes Series B to expand AI infrastructure platform",
-          "description": "Leadership said the company is expanding platform engineering and data tooling.",
-          "published_at": "2026-01-14T00:00:00+00:00",
+          "date": "2026-01-14T00:00:00+00:00",
           "url": "https://www.crunchbase.com/funding_round/nexusai-labs-series-b"
         },
         {
           "title": "NexusAI CTO outlines AI-native platform strategy",
-          "description": "The CTO described the company as building an AI-native platform stack.",
-          "published_at": "2026-02-20T00:00:00+00:00",
+          "date": "2026-02-20T00:00:00+00:00",
           "url": "https://techcrunch.com/2026/02/nexusai-labs-cto"
         }
       ],
       "confidence": 0.82,
-      "confidence_tier": "medium"
+      "confidence_tier": "medium",
+      "brief_language": "Found 2 public news item(s) with executive AI/ML commentary."
     },
     "strategic_communications": {
       "signal_type": "strategic_communications",
       "source": "Committed public-signal catalog",
       "present": true,
+      "observed_at": "2026-04-24T16:30:00+00:00",
+      "source_attribution": [
+        "https://www.crunchbase.com/funding_round/nexusai-labs-series-b",
+        "https://techcrunch.com/2026/02/nexusai-labs-cto"
+      ],
       "items_found": 2,
       "sample_items": [
         {
           "title": "NexusAI closes Series B to expand AI infrastructure platform",
-          "description": "Leadership said the company is expanding platform engineering and data tooling.",
-          "published_at": "2026-01-14T00:00:00+00:00",
+          "date": "2026-01-14T00:00:00+00:00",
           "url": "https://www.crunchbase.com/funding_round/nexusai-labs-series-b"
         },
         {
           "title": "NexusAI CTO outlines AI-native platform strategy",
-          "description": "The CTO described the company as building an AI-native platform stack.",
-          "published_at": "2026-02-20T00:00:00+00:00",
+          "date": "2026-02-20T00:00:00+00:00",
           "url": "https://techcrunch.com/2026/02/nexusai-labs-cto"
         }
       ],
       "confidence": 0.68,
-      "confidence_tier": "low"
+      "confidence_tier": "low",
+      "brief_language": "Found 2 strategic communications in public records."
     },
     "ai_maturity": {
       "signal_type": "ai_maturity",
       "source": "Composite of committed public signals",
+      "present": true,
+      "observed_at": "2026-04-24T16:30:00+00:00",
+      "source_attribution": [
+        "https://wellfound.com/company/nexusai-labs/jobs",
+        "https://github.com/nexusai-labs",
+        "https://www.crunchbase.com/funding_round/nexusai-labs-series-b",
+        "https://nexusai-labs.example"
+      ],
       "score": 2,
       "absence_not_proof_of_absence": false,
       "confidence": 0.78,
       "confidence_tier": "medium",
+      "confidence_note": "Medium confidence: score inferred from mixed signals. Ask rather than assert.",
       "per_signal_breakdown": [
         {
           "signal": "AI-adjacent open roles",
           "weight": "HIGH",
-          "evidence": "4 of 10 engineering roles are AI-adjacent",
+          "evidence": "40% of engineering roles are AI-adjacent",
           "source_url": "https://wellfound.com/company/nexusai-labs/jobs",
           "contribution": "moderate positive",
           "signal_confidence": 0.88
@@ -153,7 +225,7 @@
           "evidence": "No named Head of AI, VP Data, or recent CTO/VP Eng change detected in public records",
           "source_url": "",
           "contribution": "absent",
-          "signal_confidence": 0.75
+          "signal_confidence": 0.7
         },
         {
           "signal": "Public GitHub org activity",
@@ -174,7 +246,7 @@
         {
           "signal": "Modern data/ML stack",
           "weight": "LOW",
-          "evidence": "Detected: Python, FastAPI, Kubernetes",
+          "evidence": "Detected: Ray, dbt, Snowflake",
           "source_url": "https://nexusai-labs.example",
           "contribution": "positive",
           "signal_confidence": 0.8
@@ -187,16 +259,18 @@
           "contribution": "positive",
           "signal_confidence": 0.68
         }
-      ]
+      ],
+      "brief_language": "Composite AI maturity score 2/3 from weighted public signals."
     }
   },
   "confidence_summary": {
-    "overall_confidence": 0.82,
+    "overall_confidence": 0.8,
     "signal_confidences": {
       "funding_event": 0.97,
       "job_post_velocity": 0.88,
       "layoff_event": 0.9,
       "leadership_change": 0.75,
+      "ai_leadership": 0.7,
       "tech_stack": 0.8,
       "github_activity": 0.75,
       "exec_commentary": 0.82,

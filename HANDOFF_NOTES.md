@@ -4,7 +4,6 @@
 
 - `agent/hubspot_crm.py` now prefers MCP transport and falls back to direct REST if the MCP bridge is unavailable. If you need hard-fail MCP-only behavior, remove the REST fallback before go-live.
 - `agent/enrichment.py` now has public-page scraping paths for Wellfound, BuiltIn, and LinkedIn public jobs, but selectors are brittle and should be regression-tested whenever those sites change DOM structure.
-- The 60-day hiring velocity field now uses committed snapshots for the synthetic benchmark companies in `data/public_signal_catalog.json`. Production use still needs a real persisted snapshot store rather than hand-curated fixtures.
 - Cal.com booking link generation is centralized, but the current generated path is a simple static link pattern. Replace it with the exact public booking URL for your Cal.com event type before go-live.
 - Langfuse and OpenTelemetry are declared dependencies, but production observability wiring is still lighter than the architecture docs imply.
 
@@ -18,7 +17,6 @@
 ## Recommended Next Steps
 
 - Add a test suite for `agent/channel_policy.py`, `agent/enrichment.py`, and the competitor-gap schema contract.
-- Replace inferred 60-day hiring history with persisted snapshots and explicit source timestamps for each scrape.
 - Decide whether production should remain MCP-with-REST-fallback or become MCP-only, then align deployment checks and docs to that choice.
 - Wire real Langfuse and OpenTelemetry traces into `agent/main.py` so the architecture diagram matches the production path.
-- Expand the committed public-signal catalog into a durable snapshot pipeline so `data/public_signal_catalog.json` becomes generated evidence rather than a maintained fixture.
+- Automate periodic snapshot collection so `data/job_post_snapshots.json` and `data/public_signal_catalog.json` become generated evidence rather than maintained fixtures.

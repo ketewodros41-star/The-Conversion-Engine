@@ -72,4 +72,4 @@ Copy `.env.example` to `.env` and set:
 - The repo assumes sandbox-safe outbound by default through sink email and sink SMS.
 - Current HubSpot integration in `agent/hubspot_crm.py` supports MCP as the primary path and falls back to direct REST if the MCP bridge is unavailable.
 - Cal.com booking fallback data is returned when the live API is unavailable so static demos do not hard fail.
-- Job-post velocity uses committed 60-day snapshots in `data/public_signal_catalog.json` for the synthetic benchmark companies and falls back to live public-page scraping for unknown companies.
+- Job-post velocity is emitted only from real persisted public-page snapshots. Committed examples live in `data/public_signal_catalog.json` and `data/job_post_snapshots.json`; unknown companies get a point-in-time open-role signal until a second snapshot exists 60 days later.

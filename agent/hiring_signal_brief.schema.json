@@ -3,10 +3,65 @@
   "title": "hiring_signal_brief",
   "type": "object",
   "required": ["prospect", "signals", "confidence_summary", "generated_at"],
+  "$defs": {
+    "attributed_signal": {
+      "type": "object",
+      "required": [
+        "signal_type",
+        "source",
+        "present",
+        "observed_at",
+        "source_attribution",
+        "confidence",
+        "confidence_tier"
+      ],
+      "properties": {
+        "signal_type": { "type": "string" },
+        "source": { "type": "string" },
+        "present": { "type": "boolean" },
+        "observed_at": { "type": "string" },
+        "source_attribution": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "confidence": { "type": "number" },
+        "confidence_tier": {
+          "type": "string",
+          "enum": ["high", "medium", "low"]
+        },
+        "brief_language": { "type": "string" }
+      }
+    },
+    "maturity_breakdown_item": {
+      "type": "object",
+      "required": [
+        "signal",
+        "weight",
+        "evidence",
+        "source_url",
+        "signal_confidence",
+        "contribution"
+      ],
+      "properties": {
+        "signal": { "type": "string" },
+        "weight": { "type": "string" },
+        "evidence": { "type": "string" },
+        "source_url": { "type": "string" },
+        "signal_confidence": { "type": ["number", "null"] },
+        "contribution": { "type": "string" }
+      }
+    }
+  },
   "properties": {
     "prospect": {
       "type": "object",
-      "required": ["company_name", "crunchbase_id", "industry", "employee_count"]
+      "required": ["company_name", "crunchbase_id", "industry", "employee_count"],
+      "properties": {
+        "company_name": { "type": "string" },
+        "crunchbase_id": { "type": "string" },
+        "industry": { "type": "string" },
+        "employee_count": { "type": "integer" }
+      }
     },
     "signals": {
       "type": "object",
@@ -15,16 +70,111 @@
         "job_post_velocity",
         "layoff_event",
         "leadership_change",
+        "ai_leadership",
         "tech_stack",
         "github_activity",
         "exec_commentary",
         "strategic_communications",
         "ai_maturity"
-      ]
+      ],
+      "properties": {
+        "funding_event": {
+          "allOf": [
+            { "$ref": "#/$defs/attributed_signal" },
+            {
+              "type": "object",
+              "properties": {
+                "round_type": { "type": "string" },
+                "amount_usd": { "type": ["number", "null"] },
+                "date": { "type": "string" },
+                "days_since_close": { "type": "integer" },
+                "within_180_day_window": { "type": "boolean" }
+              }
+            }
+          ]
+        },
+        "job_post_velocity": {
+          "allOf": [
+            { "$ref": "#/$defs/attributed_signal" },
+            {
+              "type": "object",
+              "required": [
+                "open_roles_today",
+                "open_roles_60_days_ago",
+                "velocity_delta_60_days",
+                "velocity_window_days"
+              ],
+              "properties": {
+                "open_roles_today": { "type": ["integer", "null"] },
+                "open_roles_60_days_ago": { "type": ["integer", "null"] },
+                "velocity_delta_60_days": { "type": ["integer", "null"] },
+                "velocity_window_days": { "type": "integer" },
+                "historical_snapshot_at": { "type": ["string", "null"] },
+                "current_snapshot_at": { "type": ["string", "null"] }
+              }
+            }
+          ]
+        },
+        "layoff_event": { "$ref": "#/$defs/attributed_signal" },
+        "leadership_change": { "$ref": "#/$defs/attributed_signal" },
+        "ai_leadership": { "$ref": "#/$defs/attributed_signal" },
+        "tech_stack": { "$ref": "#/$defs/attributed_signal" },
+        "github_activity": { "$ref": "#/$defs/attributed_signal" },
+        "exec_commentary": { "$ref": "#/$defs/attributed_signal" },
+        "strategic_communications": { "$ref": "#/$defs/attributed_signal" },
+        "ai_maturity": {
+          "allOf": [
+            { "$ref": "#/$defs/attributed_signal" },
+            {
+              "type": "object",
+              "required": ["score", "absence_not_proof_of_absence", "per_signal_breakdown"],
+              "properties": {
+                "score": { "type": "integer", "minimum": 0, "maximum": 3 },
+                "absence_not_proof_of_absence": { "type": "boolean" },
+                "confidence_note": { "type": "string" },
+                "per_signal_breakdown": {
+                  "type": "array",
+                  "items": { "$ref": "#/$defs/maturity_breakdown_item" }
+                }
+              }
+            }
+          ]
+        }
+      }
     },
     "confidence_summary": {
       "type": "object",
-      "required": ["overall_confidence", "signal_confidences"]
+      "required": ["overall_confidence", "signal_confidences"],
+      "properties": {
+        "overall_confidence": { "type": "number" },
+        "signal_confidences": {
+          "type": "object",
+          "required": [
+            "funding_event",
+            "job_post_velocity",
+            "layoff_event",
+            "leadership_change",
+            "ai_leadership",
+            "tech_stack",
+            "github_activity",
+            "exec_commentary",
+            "strategic_communications",
+            "ai_maturity"
+          ],
+          "properties": {
+            "funding_event": { "type": "number" },
+            "job_post_velocity": { "type": "number" },
+            "layoff_event": { "type": "number" },
+            "leadership_change": { "type": "number" },
+            "ai_leadership": { "type": "number" },
+            "tech_stack": { "type": "number" },
+            "github_activity": { "type": "number" },
+            "exec_commentary": { "type": "number" },
+            "strategic_communications": { "type": "number" },
+            "ai_maturity": { "type": "number" }
+          }
+        }
+      }
     },
     "generated_at": {
       "type": "string"

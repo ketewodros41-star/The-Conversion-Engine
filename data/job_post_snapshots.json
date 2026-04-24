@@ -1,0 +1,45 @@
+{
+  "nexusai labs": {
+    "company_name": "NexusAI Labs",
+    "snapshots": [
+      {
+        "observed_at": "2026-02-22T00:00:00+00:00",
+        "open_roles": 5,
+        "role_titles": [
+          "Platform Engineer",
+          "Backend Engineer",
+          "MLOps Engineer",
+          "Data Engineer",
+          "Applied ML Engineer"
+        ],
+        "source_attribution": [
+          "https://wellfound.com/company/nexusai-labs/jobs",
+          "https://builtin.com/company/nexusai-labs/jobs"
+        ]
+      },
+      {
+        "observed_at": "2026-04-22T00:00:00+00:00",
+        "open_roles": 12,
+        "role_titles": [
+          "Senior Platform Engineer",
+          "Backend Engineer",
+          "MLOps Engineer",
+          "Data Engineer",
+          "Applied ML Engineer",
+          "ML Infrastructure Engineer",
+          "Developer Productivity Engineer",
+          "Site Reliability Engineer",
+          "Staff Data Engineer",
+          "Forward Deployed Engineer",
+          "Solutions Architect",
+          "Security Engineer"
+        ],
+        "source_attribution": [
+          "https://wellfound.com/company/nexusai-labs/jobs",
+          "https://builtin.com/company/nexusai-labs/jobs",
+          "https://www.linkedin.com/company/nexusai-labs/jobs/"
+        ]
+      }
+    ]
+  }
+}

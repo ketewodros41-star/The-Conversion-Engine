@@ -6,7 +6,7 @@
 Application source code for enrichment, channel handlers, CRM integration, calendar integration, and orchestration.
 
 `data/`
-Committed input snapshots used by the enrichment layer, including Crunchbase ODM sample data and the layoffs.fyi CSV snapshot.
+Committed input snapshots used by the enrichment layer, including Crunchbase ODM sample data, the layoffs.fyi CSV snapshot, and persisted public job-post history used for 60-day velocity computation.
 
 `eval/`
 Evaluation harness, score logs, latency outputs, and benchmark trajectories for Act I and Act IV measurement.

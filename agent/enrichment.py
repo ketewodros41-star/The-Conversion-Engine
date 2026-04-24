@@ -34,6 +34,8 @@ BENCH_SUMMARY = {
 CRUNCHBASE_ODM_PATH = "data/crunchbase_odm_sample.json"
 LAYOFFS_FYI_PATH = "data/layoffs_fyi_snapshot.csv"
 PUBLIC_SIGNAL_CATALOG_PATH = "data/public_signal_catalog.json"
+JOB_POST_SNAPSHOT_STORE_PATH = "data/job_post_snapshots.json"
+JOB_HISTORY_WINDOW_DAYS = 60
 
 
 class EnrichmentPipeline:
@@ -83,12 +85,114 @@ class EnrichmentPipeline:
             return "medium"
         return "low"
 
+    def _observed_at(self) -> str:
+        return datetime.now(timezone.utc).isoformat()
+
+    def _source_attribution_from_news(self, items: list[dict]) -> list[str]:
+        return [item.get("url") for item in items if isinstance(item, dict) and item.get("url")]
+
     def _load_public_signal_catalog(self) -> list[dict]:
         try:
             with open(PUBLIC_SIGNAL_CATALOG_PATH, encoding="utf-8") as handle:
                 return json.load(handle)
         except FileNotFoundError:
             return []
+
+    def _company_snapshot_key(self, company_name: str) -> str:
+        return " ".join(company_name.strip().lower().split())
+
+    def _load_job_snapshot_store(self) -> dict:
+        try:
+            with open(JOB_POST_SNAPSHOT_STORE_PATH, encoding="utf-8") as handle:
+                data = json.load(handle)
+            return data if isinstance(data, dict) else {}
+        except FileNotFoundError:
+            return {}
+        except json.JSONDecodeError:
+            log.warning("job_snapshot_store_invalid_json", path=JOB_POST_SNAPSHOT_STORE_PATH)
+            return {}
+
+    def _save_job_snapshot_store(self, store: dict) -> None:
+        with open(JOB_POST_SNAPSHOT_STORE_PATH, "w", encoding="utf-8") as handle:
+            json.dump(store, handle, indent=2)
+
+    def _load_persisted_job_history(self, company_name: str) -> Optional[dict]:
+        store = self._load_job_snapshot_store()
+        entry = store.get(self._company_snapshot_key(company_name))
+        if not isinstance(entry, dict):
+            return None
+        snapshots = entry.get("snapshots", [])
+        if not isinstance(snapshots, list):
+            return None
+        return {
+            "company_name": entry.get("company_name", company_name),
+            "snapshots": snapshots,
+        }
+
+    def _persist_job_snapshot(
+        self,
+        *,
+        company_name: str,
+        source_attribution: list[str],
+        role_titles: list[str],
+        observed_at: str,
+    ) -> None:
+        store = self._load_job_snapshot_store()
+        key = self._company_snapshot_key(company_name)
+        entry = store.get(key, {"company_name": company_name, "snapshots": []})
+        snapshots = entry.get("snapshots", [])
+        new_snapshot = {
+            "observed_at": observed_at,
+            "open_roles": len(role_titles),
+            "role_titles": role_titles,
+            "source_attribution": source_attribution,
+        }
+        snapshots = [snapshot for snapshot in snapshots if snapshot.get("observed_at") != observed_at]
+        snapshots.append(new_snapshot)
+        snapshots = sorted(snapshots, key=lambda item: item.get("observed_at", ""))[-12:]
+        entry["company_name"] = company_name
+        entry["snapshots"] = snapshots
+        store[key] = entry
+        self._save_job_snapshot_store(store)
+
+    def _merge_job_histories(self, *job_histories: Optional[dict]) -> Optional[dict]:
+        merged_snapshots = []
+        for history in job_histories:
+            if not history:
+                continue
+            merged_snapshots.extend(history.get("snapshots", []))
+        if not merged_snapshots:
+            return None
+        deduped = {
+            snapshot.get("observed_at"): snapshot
+            for snapshot in merged_snapshots
+            if snapshot.get("observed_at")
+        }
+        return {
+            "snapshots": sorted(deduped.values(), key=lambda item: item.get("observed_at", "")),
+        }
+
+    def _select_velocity_snapshot_pair(self, snapshots: list[dict]) -> tuple[Optional[dict], Optional[dict]]:
+        if len(snapshots) < 2:
+            return None, None
+        latest = snapshots[-1]
+        latest_observed_at = latest.get("observed_at")
+        if not latest_observed_at:
+            return None, None
+        latest_dt = datetime.fromisoformat(latest_observed_at.replace("Z", "+00:00"))
+        target_dt = latest_dt - timedelta(days=JOB_HISTORY_WINDOW_DAYS)
+        previous_candidates = []
+        for snapshot in snapshots[:-1]:
+            observed_at = snapshot.get("observed_at")
+            if not observed_at:
+                continue
+            snapshot_dt = datetime.fromisoformat(observed_at.replace("Z", "+00:00"))
+            if snapshot_dt <= target_dt:
+                previous_candidates.append((snapshot_dt, snapshot))
+        if not previous_candidates:
+            return latest, None
+        previous = max(previous_candidates, key=lambda item: item[0])[1]
+        return latest, previous
 
     def _find_catalog_record(
         self,
@@ -133,10 +237,9 @@ class EnrichmentPipeline:
             job_history.get("snapshots", []),
             key=lambda item: item.get("observed_at", ""),
         )
-        if len(snapshots) < 2:
+        latest, previous = self._select_velocity_snapshot_pair(snapshots)
+        if not latest or not previous:
             return None
-        previous = snapshots[0]
-        latest = snapshots[-1]
         deduped_jobs = list(dict.fromkeys(self._role_titles_from_snapshot(latest)))[:20]
         engineering_keywords = [
             "engineer", "developer", "architect", "data", "ml", "machine learning",
@@ -157,15 +260,16 @@ class EnrichmentPipeline:
         confidence = 0.88 if coverage >= 2 else 0.80
         return {
             "signal_type": "job_post_velocity",
-            "source": "Committed public job-post snapshots",
+            "source": "Persisted public job-post snapshots",
             "present": bool(deduped_jobs),
+            "observed_at": latest.get("observed_at"),
             "total_open_roles": open_roles_today,
             "engineering_roles": len(eng_roles),
             "ai_adjacent_roles": len(ai_roles),
             "open_roles_today": open_roles_today,
             "open_roles_60_days_ago": open_roles_60_days_ago,
             "velocity_delta_60_days": velocity_delta,
-            "velocity_window_days": 60,
+            "velocity_window_days": JOB_HISTORY_WINDOW_DAYS,
             "velocity_label": (
                 "growing" if velocity_delta > 0 else
                 "flat" if velocity_delta == 0 else
@@ -179,11 +283,11 @@ class EnrichmentPipeline:
             "confidence": confidence,
             "confidence_tier": self._confidence_tier(confidence),
             "confidence_note": (
-                "Computed from committed snapshots 60 days apart rather than inferred backfill."
+                "Computed from persisted snapshots rather than inferred backfill."
             ),
             "brief_language": (
                 f"Found {open_roles_today} public open roles versus {open_roles_60_days_ago} roles "
-                f"60 days earlier, including {len(ai_roles)} AI-adjacent roles."
+                f"{JOB_HISTORY_WINDOW_DAYS} days earlier, including {len(ai_roles)} AI-adjacent roles."
                 if deduped_jobs else
                 "No public job-post velocity signal found."
             ),
@@ -237,6 +341,7 @@ class EnrichmentPipeline:
 
     async def detect_funding_signal(self, crunchbase_record: dict) -> dict:
         cutoff = datetime.now(timezone.utc) - timedelta(days=180)
+        observed_at = self._observed_at()
         funding_rounds = crunchbase_record.get("funding_rounds", [])
         recent_rounds = []
         for round_event in funding_rounds:
@@ -253,6 +358,8 @@ class EnrichmentPipeline:
                 "signal_type": "funding_event",
                 "source": "Crunchbase ODM sample",
                 "present": False,
+                "observed_at": observed_at,
+                "source_attribution": [],
                 "confidence": confidence,
                 "confidence_tier": self._confidence_tier(confidence),
                 "brief_language": "No qualifying funding event found in the last 180 days.",
@@ -268,11 +375,15 @@ class EnrichmentPipeline:
             "signal_type": "funding_event",
             "source": "Crunchbase ODM sample",
             "present": True,
+            "observed_at": observed_at,
             "round_type": latest.get("investment_type", "Unknown"),
             "amount_usd": latest.get("raised_amount_usd"),
             "date": latest.get("announced_on"),
             "days_since_close": days_since,
             "within_180_day_window": True,
+            "source_attribution": [
+                crunchbase_record.get("homepage_url"),
+            ] if crunchbase_record.get("homepage_url") else [],
             "confidence": confidence,
             "confidence_tier": self._confidence_tier(confidence),
             "brief_language": (
@@ -283,9 +394,13 @@ class EnrichmentPipeline:
 
     async def scrape_job_posts(self, company_name: str, careers_url: Optional[str] = None) -> dict:
         catalog_record = self._find_catalog_record(company_name=company_name)
+        persisted_history = self._load_persisted_job_history(company_name)
         historical_signal = self._job_signal_from_history(
             company_name,
-            catalog_record.get("job_history") if catalog_record else None,
+            self._merge_job_histories(
+                catalog_record.get("job_history") if catalog_record else None,
+                persisted_history,
+            ),
         )
         if historical_signal:
             return historical_signal
@@ -297,13 +412,19 @@ class EnrichmentPipeline:
                 "signal_type": "job_post_velocity",
                 "source": "playwright_unavailable",
                 "present": False,
+                "observed_at": self._observed_at(),
                 "total_open_roles": 0,
                 "engineering_roles": 0,
                 "ai_adjacent_roles": 0,
                 "role_titles": [],
+                "history_status": "insufficient_snapshots",
+                "source_attribution": [],
                 "confidence": confidence,
                 "confidence_tier": self._confidence_tier(confidence),
-                "brief_language": "Playwright unavailable, so no public job-post signal was collected.",
+                "brief_language": (
+                    "Playwright unavailable, so no public job-post signal was collected and no "
+                    "persisted 60-day velocity could be computed."
+                ),
             }
 
         # Robots.txt compliance: check public-page permissions before launching the browser.
@@ -335,7 +456,7 @@ class EnrichmentPipeline:
         ]
 
         jobs: list[str] = []
-        sources_checked: list[str] = []
+        source_attribution: list[str] = []
         async with async_playwright() as playwright:
             browser = await playwright.chromium.launch(headless=True)
             context = await browser.new_context(
@@ -359,7 +480,7 @@ class EnrichmentPipeline:
                                 source_jobs.append(text)
                         if source_jobs:
                             jobs.extend(source_jobs)
-                            sources_checked.append(source["name"])
+                            source_attribution.append(source["url"])
                     except Exception as exc:
                         log.debug(
                             "public_job_scrape_failed",
@@ -385,42 +506,57 @@ class EnrichmentPipeline:
             job for job in deduped_jobs if any(keyword in job.lower() for keyword in engineering_keywords)
         ]
         ai_roles = [job for job in deduped_jobs if any(keyword in job.lower() for keyword in ai_keywords)]
-        open_roles_today = len(deduped_jobs)
-        open_roles_60_days_ago = max(0, open_roles_today - max(1, round(open_roles_today * 0.4))) if deduped_jobs else 0
-        velocity_delta = open_roles_today - open_roles_60_days_ago
+        observed_at = datetime.now(timezone.utc).isoformat()
+        self._persist_job_snapshot(
+            company_name=company_name,
+            source_attribution=source_attribution,
+            role_titles=deduped_jobs,
+            observed_at=observed_at,
+        )
+        merged_history = self._merge_job_histories(
+            catalog_record.get("job_history") if catalog_record else None,
+            self._load_persisted_job_history(company_name),
+        )
+        historical_signal = self._job_signal_from_history(company_name, merged_history)
+        if historical_signal:
+            return historical_signal
 
-        confidence = 0.82 if deduped_jobs and len(sources_checked) >= 2 else 0.75 if deduped_jobs else 0.30
+        confidence = 0.82 if deduped_jobs and len(source_attribution) >= 2 else 0.75 if deduped_jobs else 0.30
         return {
             "signal_type": "job_post_velocity",
             "source": "Public job listings via Playwright",
             "present": bool(deduped_jobs),
-            "total_open_roles": open_roles_today,
+            "observed_at": observed_at,
+            "total_open_roles": len(deduped_jobs),
             "engineering_roles": len(eng_roles),
             "ai_adjacent_roles": len(ai_roles),
-            "open_roles_today": open_roles_today,
-            "open_roles_60_days_ago": open_roles_60_days_ago,
-            "velocity_delta_60_days": velocity_delta,
-            "velocity_window_days": 60,
-            "velocity_label": (
-                "growing" if velocity_delta > 0 else
-                "flat" if velocity_delta == 0 else
-                "declining"
-            ),
-            "source_attribution": sources_checked,
+            "open_roles_today": len(deduped_jobs),
+            "open_roles_60_days_ago": None,
+            "velocity_delta_60_days": None,
+            "velocity_window_days": JOB_HISTORY_WINDOW_DAYS,
+            "velocity_label": "insufficient_history",
+            "history_status": "insufficient_snapshots",
+            "source_attribution": source_attribution,
             "role_titles": deduped_jobs,
-            "scraped_at": datetime.now(timezone.utc).isoformat(),
+            "historical_snapshot_at": None,
+            "current_snapshot_at": observed_at,
+            "scraped_at": observed_at,
             "confidence": confidence,
             "confidence_tier": self._confidence_tier(confidence),
-            "confidence_note": "Low confidence if fewer than 5 roles found; do not over-assert hiring velocity.",
+            "confidence_note": (
+                "A true 60-day velocity is only emitted after two persisted snapshots exist. "
+                "Until then, use current open-role count as a point-in-time signal only."
+            ),
             "brief_language": (
-                f"Found {open_roles_today} public open roles across a 60-day comparison window, "
-                f"including {len(ai_roles)} AI-adjacent roles."
+                f"Found {len(deduped_jobs)} public open roles today, including {len(ai_roles)} AI-adjacent roles. "
+                f"A {JOB_HISTORY_WINDOW_DAYS}-day velocity delta will be emitted after a second persisted snapshot exists."
                 if deduped_jobs else
                 "No public job-post velocity signal found."
             ),
         }
 
     async def check_layoffs(self, company_name: str) -> dict:
+        observed_at = self._observed_at()
         try:
             df = pd.read_csv(LAYOFFS_FYI_PATH)
             cutoff = datetime.now(timezone.utc) - timedelta(days=120)
@@ -431,6 +567,8 @@ class EnrichmentPipeline:
                     "signal_type": "layoff_event",
                     "source": "layoffs.fyi snapshot csv",
                     "present": False,
+                    "observed_at": observed_at,
+                    "source_attribution": [],
                     "confidence": confidence,
                     "confidence_tier": self._confidence_tier(confidence),
                     "brief_language": "No layoff events found in the last 120 days.",
@@ -443,6 +581,8 @@ class EnrichmentPipeline:
                     "signal_type": "layoff_event",
                     "source": "layoffs.fyi snapshot csv",
                     "present": False,
+                    "observed_at": observed_at,
+                    "source_attribution": [],
                     "confidence": confidence,
                     "confidence_tier": self._confidence_tier(confidence),
                     "brief_language": "No recent layoff events found in the last 120 days.",
@@ -454,10 +594,12 @@ class EnrichmentPipeline:
                 "signal_type": "layoff_event",
                 "source": "layoffs.fyi snapshot csv",
                 "present": True,
+                "observed_at": observed_at,
                 "date": str(latest.get("Date")),
                 "headcount_cut": latest.get("Laid_Off_Count"),
                 "percentage_cut": latest.get("Percentage"),
                 "source_url": latest.get("Source"),
+                "source_attribution": [latest.get("Source")] if latest.get("Source") else [],
                 "confidence": confidence,
                 "confidence_tier": self._confidence_tier(confidence),
                 "brief_language": (
@@ -472,6 +614,8 @@ class EnrichmentPipeline:
                 "signal_type": "layoff_event",
                 "source": "layoffs_dataset_missing",
                 "present": False,
+                "observed_at": observed_at,
+                "source_attribution": [],
                 "confidence": confidence,
                 "confidence_tier": self._confidence_tier(confidence),
                 "error": "Dataset not loaded",
@@ -539,12 +683,13 @@ class EnrichmentPipeline:
             })
 
         confidence = 0.80 if new_leaders else 0.75
+        observed_at = self._observed_at()
         return {
             "signal_type": "leadership_change",
             "source": "Crunchbase ODM people records and public news",
             "present": bool(new_leaders),
+            "observed_at": observed_at,
             "new_leaders": new_leaders,
-            "observed_at": datetime.now(timezone.utc).isoformat(),
             "source_attribution": [
                 leader.get("source_url") for leader in new_leaders if leader.get("source_url")
             ][:3],
@@ -557,8 +702,96 @@ class EnrichmentPipeline:
             ),
         }
 
+    async def detect_ai_leadership_presence(self, crunchbase_record: dict) -> dict:
+        """
+        Collects named AI/ML leadership independent of recent leadership-change detection.
+        This closes the gap between "recent engineering transition" and "public AI leadership exists".
+        """
+        observed_at = self._observed_at()
+        people = crunchbase_record.get("people", [])
+        news = crunchbase_record.get("news", [])
+        leadership_titles = {
+            "head of ai",
+            "vp ai",
+            "vp of ai",
+            "chief ai officer",
+            "head of machine learning",
+            "vp machine learning",
+            "director of machine learning",
+            "head of ml",
+            "head of ml platform",
+            "vp data",
+            "vp of data",
+            "chief data officer",
+            "head of data science",
+            "director of data science",
+            "ai lead",
+            "ml lead",
+        }
+
+        matched_people = []
+        for person in people:
+            title = str(person.get("title", "")).strip()
+            title_lower = title.lower()
+            if title_lower in leadership_titles:
+                matched_people.append({
+                    "name": person.get("name", ""),
+                    "title": title,
+                    "start_date": person.get("start_date"),
+                    "source_url": person.get("source_url") or crunchbase_record.get("homepage_url", ""),
+                    "source": "people_record",
+                })
+
+        matched_news = []
+        for item in news:
+            if not isinstance(item, dict):
+                continue
+            combined_text = " ".join([
+                str(item.get("title", "")),
+                str(item.get("description", "")),
+            ]).lower()
+            matched_title = next((title for title in leadership_titles if title in combined_text), None)
+            if not matched_title:
+                continue
+            matched_news.append({
+                "name": item.get("organization", ""),
+                "title": matched_title.title(),
+                "start_date": item.get("published_at") or item.get("date"),
+                "source_url": item.get("url", ""),
+                "source": "public_news",
+            })
+
+        leaders = []
+        seen = set()
+        for leader in matched_people + matched_news:
+            dedupe_key = (leader.get("title", "").lower(), leader.get("source_url", ""))
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            leaders.append(leader)
+
+        confidence = 0.85 if leaders else 0.70
+        return {
+            "signal_type": "ai_leadership",
+            "source": "Crunchbase ODM people records and public news",
+            "present": bool(leaders),
+            "observed_at": observed_at,
+            "leaders": leaders,
+            "source_attribution": [
+                leader.get("source_url") for leader in leaders if leader.get("source_url")
+            ][:5],
+            "confidence": confidence,
+            "confidence_tier": self._confidence_tier(confidence),
+            "brief_language": (
+                f"Named AI/ML leadership detected: {leaders[0].get('title', 'AI leadership')}."
+                if leaders else
+                "No named AI/ML leadership detected in available public records."
+            ),
+        }
+
     async def detect_tech_stack(self, crunchbase_record: dict) -> dict:
         builtwith = crunchbase_record.get("builtwith_top_technologies", [])
+        observed_at = self._observed_at()
         technologies = []
         for item in builtwith[:10]:
             if isinstance(item, dict) and item.get("name"):
@@ -584,8 +817,10 @@ class EnrichmentPipeline:
             "signal_type": "tech_stack",
             "source": "Crunchbase ODM technology fields",
             "present": bool(technologies),
+            "observed_at": observed_at,
             "technologies": technologies,
             "source_url": crunchbase_record.get("homepage_url", ""),
+            "source_attribution": [crunchbase_record.get("homepage_url")] if crunchbase_record.get("homepage_url") else [],
             "details": {
                 "bench_match": sorted(set(bench_match)),
                 "ai_ml_tools": ai_ml_tools,
@@ -601,6 +836,7 @@ class EnrichmentPipeline:
 
     async def check_github_activity(self, crunchbase_record: dict) -> dict:
         """Checks for public GitHub org activity. MEDIUM weight AI maturity signal."""
+        observed_at = self._observed_at()
         github_url = crunchbase_record.get("github_url") or crunchbase_record.get("web_path_gh")
         news = crunchbase_record.get("news", [])
         builtwith = crunchbase_record.get("builtwith_top_technologies", [])
@@ -629,7 +865,9 @@ class EnrichmentPipeline:
                 "signal_type": "github_activity",
                 "source": "Crunchbase ODM technology and news fields",
                 "present": False,
+                "observed_at": observed_at,
                 "inference_basis": "No GitHub URL or open-source signal found in public records",
+                "source_attribution": [],
                 "confidence": confidence,
                 "confidence_tier": self._confidence_tier(confidence),
                 "brief_language": "No public GitHub org activity detected in available records.",
@@ -640,12 +878,14 @@ class EnrichmentPipeline:
             "signal_type": "github_activity",
             "source": "Crunchbase ODM technology and news fields",
             "present": True,
+            "observed_at": observed_at,
             "github_url": github_url,
             "open_source_news_mentions": len(github_news),
             "inference_basis": (
                 f"GitHub URL on record: {github_url}" if github_url else
                 f"{len(github_news)} news mention(s) reference open-source or GitHub activity"
             ),
+            "source_attribution": ([github_url] if github_url else []) + self._source_attribution_from_news(github_news),
             "confidence": confidence,
             "confidence_tier": self._confidence_tier(confidence),
             "brief_language": (
@@ -655,6 +895,7 @@ class EnrichmentPipeline:
 
     async def check_exec_commentary(self, crunchbase_record: dict) -> dict:
         """Checks for executive public commentary on AI/ML/tech strategy. MEDIUM weight signal."""
+        observed_at = self._observed_at()
         news = crunchbase_record.get("news", [])
         ai_keywords = [
             "ai", "machine learning", "ml", "llm", "artificial intelligence",
@@ -680,7 +921,10 @@ class EnrichmentPipeline:
                 "signal_type": "exec_commentary",
                 "source": "Crunchbase ODM news records",
                 "present": False,
+                "observed_at": observed_at,
                 "items_found": 0,
+                "sample_items": [],
+                "source_attribution": [],
                 "confidence": confidence,
                 "confidence_tier": self._confidence_tier(confidence),
                 "brief_language": "No public executive commentary on AI/ML strategy found in news records.",
@@ -691,8 +935,10 @@ class EnrichmentPipeline:
             "signal_type": "exec_commentary",
             "source": "Crunchbase ODM news records",
             "present": True,
+            "observed_at": observed_at,
             "items_found": len(ai_commentary),
             "sample_items": ai_commentary[:3],
+            "source_attribution": self._source_attribution_from_news(ai_commentary[:3]),
             "confidence": confidence,
             "confidence_tier": self._confidence_tier(confidence),
             "brief_language": (
@@ -704,6 +950,7 @@ class EnrichmentPipeline:
         """Checks for strategic communications: press releases, investor letters, conference talks.
         LOW weight AI maturity signal — presence alone does not indicate AI capability,
         only that the company communicates strategy publicly."""
+        observed_at = self._observed_at()
         news = crunchbase_record.get("news", [])
         strategy_keywords = [
             "strategy", "roadmap", "vision", "partnership", "integration",
@@ -728,8 +975,10 @@ class EnrichmentPipeline:
             "signal_type": "strategic_communications",
             "source": "Crunchbase ODM news records",
             "present": bool(strategy_items),
+            "observed_at": observed_at,
             "items_found": len(strategy_items),
             "sample_items": strategy_items[:3],
+            "source_attribution": self._source_attribution_from_news(strategy_items[:3]),
             "confidence": confidence,
             "confidence_tier": self._confidence_tier(confidence),
             "brief_language": (
@@ -742,7 +991,7 @@ class EnrichmentPipeline:
     def score_ai_maturity(
         self,
         job_posts: dict,
-        leadership: dict,
+        ai_leadership: dict,
         tech_stack: dict,
         github_activity: Optional[dict] = None,
         exec_commentary: Optional[dict] = None,
@@ -793,17 +1042,15 @@ class EnrichmentPipeline:
             })
 
         # --- HIGH WEIGHT: Named AI/ML leadership ---
-        # Checks for a recent CTO/VP Eng hire (leading indicator of AI investment)
-        # or existing AI-specific leadership role on the public team.
-        if leadership.get("present"):
+        if ai_leadership.get("present"):
             score += 1.0
-            leader = leadership.get("new_leaders", [{}])[0]
+            leader = ai_leadership.get("leaders", [{}])[0]
             signals.append({
                 "signal": "Named AI/ML leadership",
                 "weight": "HIGH",
-                "evidence": f"Recent engineering leadership hire: {leader.get('title', 'Engineering leader')}",
-                "source_url": leader.get("source_url") or (leadership.get("source_attribution") or [""])[0],
-                "signal_confidence": leadership.get("confidence"),
+                "evidence": f"Named AI/ML leader in public records: {leader.get('title', 'AI/ML leader')}",
+                "source_url": leader.get("source_url") or (ai_leadership.get("source_attribution") or [""])[0],
+                "signal_confidence": ai_leadership.get("confidence"),
                 "contribution": "strong positive",
             })
         else:
@@ -811,8 +1058,8 @@ class EnrichmentPipeline:
                 "signal": "Named AI/ML leadership",
                 "weight": "HIGH",
                 "evidence": "No named Head of AI, VP Data, or recent CTO/VP Eng change detected in public records",
-                "source_url": (leadership.get("source_attribution") or [""])[0],
-                "signal_confidence": leadership.get("confidence"),
+                "source_url": (ai_leadership.get("source_attribution") or [""])[0],
+                "signal_confidence": ai_leadership.get("confidence"),
                 "contribution": "absent",
             })
 
@@ -917,6 +1164,10 @@ class EnrichmentPipeline:
                 "source": "Composite of collected public signals",
                 "score": 0,
                 "absence_not_proof_of_absence": True,
+                "observed_at": self._observed_at(),
+                "source_attribution": [
+                    signal.get("source_url", "") for signal in signals if signal.get("source_url")
+                ],
                 "confidence": 0.40,
                 "confidence_tier": "low",
                 "per_signal_breakdown": signals,
@@ -946,6 +1197,10 @@ class EnrichmentPipeline:
             "source": "Composite of collected public signals",
             "score": final_score,
             "absence_not_proof_of_absence": False,
+            "observed_at": self._observed_at(),
+            "source_attribution": [
+                signal.get("source_url", "") for signal in signals if signal.get("source_url")
+            ],
             "confidence": confidence,
             "confidence_tier": self._confidence_tier(confidence),
             "per_signal_breakdown": signals,
@@ -967,13 +1222,14 @@ class EnrichmentPipeline:
         )
         layoffs = await self.check_layoffs(company_name)
         leadership = await self.detect_leadership_change(record)
+        ai_leadership = await self.detect_ai_leadership_presence(record)
         tech_stack = await self.detect_tech_stack(record)
         github_activity = await self.check_github_activity(record)
         exec_commentary = await self.check_exec_commentary(record)
         strategic_comms = await self.check_strategic_communications(record)
         ai_maturity = self.score_ai_maturity(
             job_posts=jobs,
-            leadership=leadership,
+            ai_leadership=ai_leadership,
             tech_stack=tech_stack,
             github_activity=github_activity,
             exec_commentary=exec_commentary,
@@ -984,6 +1240,7 @@ class EnrichmentPipeline:
             "job_post_velocity": jobs,
             "layoff_event": layoffs,
             "leadership_change": leadership,
+            "ai_leadership": ai_leadership,
             "tech_stack": tech_stack,
             "github_activity": github_activity,
             "exec_commentary": exec_commentary,
@@ -1096,6 +1353,7 @@ class EnrichmentPipeline:
                 signals["job_post_velocity"],
                 signals["layoff_event"],
                 signals["leadership_change"],
+                signals["ai_leadership"],
                 signals["tech_stack"],
                 signals["ai_maturity"],
             ]
@@ -1121,6 +1379,7 @@ class EnrichmentPipeline:
                     "job_post_velocity": signals["job_post_velocity"].get("confidence", 0.0),
                     "layoff_event": signals["layoff_event"].get("confidence", 0.0),
                     "leadership_change": signals["leadership_change"].get("confidence", 0.0),
+                    "ai_leadership": signals["ai_leadership"].get("confidence", 0.0),
                     "tech_stack": signals["tech_stack"].get("confidence", 0.0),
                     "github_activity": signals["github_activity"].get("confidence", 0.0),
                     "exec_commentary": signals["exec_commentary"].get("confidence", 0.0),
