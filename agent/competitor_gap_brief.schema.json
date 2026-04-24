@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "competitor_gap_brief",
+  "type": "object",
+  "required": [
+    "prospect_id",
+    "sector",
+    "selection_criteria",
+    "competitors_analyzed",
+    "distribution_position",
+    "gap_findings",
+    "generated_at"
+  ],
+  "properties": {
+    "selection_criteria": {
+      "type": "object",
+      "required": [
+        "sector_match",
+        "employee_band",
+        "funding_minimum",
+        "top_quartile_threshold",
+        "max_returned",
+        "min_for_valid_analysis"
+      ]
+    },
+    "competitors_analyzed": {
+      "type": "array"
+    },
+    "distribution_position": {
+      "type": "object",
+      "required": [
+        "sector_sample_size",
+        "top_quartile_count",
+        "prospect_ai_maturity_score",
+        "prospect_percentile_rank",
+        "description"
+      ]
+    },
+    "gap_findings": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 3
+    }
+  }
+}

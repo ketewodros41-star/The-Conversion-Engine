@@ -1,227 +1,200 @@
-# Act IV Mechanism — Signal-Confidence-Aware Phrasing (SCAP)
-**Mechanism Agent | 2026-04-25**
+# Act IV Mechanism - Signal-Confidence-Aware Phrasing (SCAP v2)
+**Mechanism Agent | 2026-04-24**
 
 ---
 
-## 1. Mechanism Overview
+## 1. Target Failure and Design Rationale
 
-**Name**: Signal-Confidence-Aware Phrasing (SCAP v2)
+Target failure mode: `P-005` from `probes/target_failure_mode.md`.
 
-**Target failure mode**: Signal over-claiming (P-005 cluster) — the agent makes factual assertions about prospect business state that exceed the confidence level of the underlying signal.
+Root cause: the agent treated weak signals as if they were strong signals. In practice that meant a low-evidence hiring or gap signal was still phrased as a fact. The business problem is not just wrong content; it is over-assertion under uncertainty.
 
-**Core idea**: Every signal-derived claim in the agent's output is tagged with its source signal and confidence score at generation time. A confidence gate then determines whether the claim is phrased as an assertion (`> threshold`), a hedge (`threshold ± 0.10`), or a question (`< threshold`). The phrasing choice is injected into the system prompt dynamically per prospect.
+Why SCAP addresses the root cause: SCAP does not try to guess better facts after generation. It changes how every signal is phrased before the LLM writes the email by injecting signal-specific instructions derived from the confidence attached to each input signal.
 
 ---
 
-## 2. Mechanism Design
+## 2. Re-Implementable Mechanism Spec
 
-### 2.1 Architecture
+Inputs required per prospect:
 
-```
-Signal Enrichment Pipeline
-          │
-          ▼
-   [Signal with confidence]
-   {funding_event: 0.97,
-    job_velocity: 0.52,    ← LOW: rephrase as question
-    ai_maturity: 0.78}
-          │
-          ▼
-   SCAP Confidence Gate
-          │
-          ├── confidence > assert_threshold → ASSERT
-          ├── hedge_threshold < confidence ≤ assert_threshold → HEDGE
-          └── confidence < hedge_threshold → QUESTION
-          │
-          ▼
-   Dynamic System Prompt
-   "For job_velocity: use question framing
-    For funding: use assertion framing"
-          │
-          ▼
-   LLM Email Generation
-   (Claude Sonnet 4.6)
-          │
-          ▼
-   Output Email
-```
+- A structured `hiring_signal_brief` with signal objects carrying `confidence`, `confidence_tier`, and `brief_language`.
+- A competitor-gap brief with per-gap confidence and evidence fields.
+- A base outreach prompt.
 
-### 2.2 Threshold Table
+Algorithm:
 
-| Signal | Assert Threshold | Hedge Threshold | Example Assert | Example Hedge | Example Question |
-|--------|-----------------|-----------------|----------------|---------------|-----------------|
-| Funding event | 0.90 | 0.75 | "You closed an $18M Series B in January" | "Our data suggests a recent Series B" | "Have you closed a recent funding round?" |
-| Job-post velocity | 0.80 AND ≥5 roles | 0.65 | "Your open Python roles have doubled" | "We're seeing more engineering openings than typical for this stage" | "Are you finding it hard to recruit ML engineers at pace?" |
-| AI maturity | 0.85 + HIGH-weight | 0.70 | "You have an established AI function" | "You appear to be building out ML infrastructure" | "Is AI a significant part of your technical direction?" |
-| Competitor gap | 0.80 | 0.65 | "The top quartile in your sector has X" | "Top-quartile teams are increasingly investing in X" | "Is [gap area] something you're working through?" |
-| Layoff event | 0.90 | 0.75 | "Following the restructure in March" | "You may have recently been through an organizational shift" | Never use layoff as cold-outreach opener |
+1. Read the structured signals for funding, job velocity, layoffs, AI maturity, and competitor gaps.
+2. For each signal, compare `confidence` to the signal-specific assert and hedge thresholds.
+3. Emit one phrasing instruction per signal:
+   - `ASSERT` when confidence is above the assert threshold.
+   - `HEDGE` when confidence is between hedge and assert.
+   - `QUESTION` when confidence is below hedge.
+4. Append those instructions to the system prompt before generation.
+5. Forbid layoff-led openers regardless of confidence.
+6. Forbid explicit headcount or delivery commitments regardless of confidence.
+7. Generate the email with deterministic temperature.
 
-### 2.3 Dynamic System Prompt Construction
-
-The mechanism constructs a per-prospect phrasing instruction appended to the base system prompt:
+Reference prompt-construction pseudocode:
 
 ```python
-def build_scap_instructions(signals: dict) -> str:
-    instructions = ["PHRASING INSTRUCTIONS (SCAP v2):"]
-    for signal_name, signal_data in signals.items():
-        conf = signal_data.get("confidence", 0)
-        tier = signal_data.get("confidence_tier", "low")
-        if conf >= ASSERT_THRESHOLDS.get(signal_name, 0.90):
-            instructions.append(f"- {signal_name}: ASSERT as fact (confidence {conf:.0%})")
-        elif conf >= HEDGE_THRESHOLDS.get(signal_name, 0.70):
-            instructions.append(f"- {signal_name}: HEDGE with 'appears', 'suggests', 'based on public signals' (confidence {conf:.0%})")
+ASSERT_THRESHOLDS = {
+    "funding_event": 0.90,
+    "job_post_velocity": 0.80,
+    "ai_maturity": 0.85,
+    "competitor_gap": 0.80,
+}
+
+HEDGE_THRESHOLDS = {
+    "funding_event": 0.75,
+    "job_post_velocity": 0.65,
+    "ai_maturity": 0.70,
+    "competitor_gap": 0.65,
+}
+
+def build_scap_instructions(signals: dict) -> list[str]:
+    instructions = []
+    for signal_name, signal in signals.items():
+        confidence = signal.get("confidence", 0.0)
+        if confidence >= ASSERT_THRESHOLDS.get(signal_name, 0.90):
+            mode = "ASSERT"
+        elif confidence >= HEDGE_THRESHOLDS.get(signal_name, 0.70):
+            mode = "HEDGE"
         else:
-            instructions.append(f"- {signal_name}: QUESTION — ask rather than assert (confidence {conf:.0%})")
-    return "\n".join(instructions)
+            mode = "QUESTION"
+        instructions.append(f"{signal_name}: {mode}")
+    instructions.append("layoff_event: never use as cold-open")
+    instructions.append("bench_commitment: never promise headcount or start date")
+    return instructions
 ```
+
+Operational effect:
+
+- High-confidence funding can be stated directly.
+- Medium-confidence hiring velocity must be hedged.
+- Low-confidence competitor gaps must be framed as questions.
 
 ---
 
 ## 3. Hyperparameters
 
-| Parameter | Value | Rationale |
-|-----------|-------|-----------|
-| Funding assert threshold | 0.90 | Crunchbase ODM is high-fidelity; Seed/Series date is reliably extractable |
-| Funding hedge threshold | 0.75 | |
-| Job velocity assert threshold | 0.80 | Requires ≥5 roles (business rule) AND high scraping confidence |
-| Job velocity hedge threshold | 0.65 | |
-| Job velocity minimum role count | 5 | From challenge brief: <5 roles → do not assert velocity |
-| AI maturity assert threshold | 0.85 | Requires multiple HIGH-weight signals; harder to verify |
-| AI maturity hedge threshold | 0.70 | |
-| Competitor gap assert threshold | 0.80 | |
-| Competitor gap hedge threshold | 0.65 | |
-| Max email word count | 180 | Tenacious style guide constraint |
-| LLM model (eval tier) | claude-sonnet-4-6 | Pinned per challenge brief |
-| Temperature | 0.0 | Deterministic for reproducibility |
+| Parameter | Value |
+|-----------|------:|
+| Funding assert threshold | 0.90 |
+| Funding hedge threshold | 0.75 |
+| Job velocity assert threshold | 0.80 |
+| Job velocity hedge threshold | 0.65 |
+| Job velocity minimum role count | 5 |
+| AI maturity assert threshold | 0.85 |
+| AI maturity hedge threshold | 0.70 |
+| Competitor-gap assert threshold | 0.80 |
+| Competitor-gap hedge threshold | 0.65 |
+| Max email word count | 180 |
+| Model pin for current eval logs | `openrouter/openai/gpt-4o-mini` |
+| Temperature | `0.0` |
+
+Business rules layered on top:
+
+- Never open cold outreach with a layoff event.
+- Never promise exact staffing capacity or start date.
+- Never name a competitor directly in the email body.
 
 ---
 
-## 4. Three Ablation Variants
+## 4. Ablation Variants
 
-### Variant A — Baseline (No SCAP)
-The unmodified agent with no confidence gating. All signals used in assertions regardless of confidence level. This is the Day-1 baseline.
+### Variant A - Baseline
 
-**Hypothesis**: Highest signal over-claiming rate. Lowest pass@1 on ambiguous-signal tasks.
+No confidence-aware phrasing. Signals are usable as normal prompt facts.
 
-### Variant B — Threshold-Gate SCAP (Binary)
-Binary gate: above threshold → assert, below threshold → question. No hedging middle tier.
+What this tests: whether SCAP adds anything over the unmodified prompt.
 
-**Hypothesis**: Reduces over-claiming but creates jarring tone shifts when swinging from assertion to question. Some false negatives (suppressing high-confidence claims unnecessarily).
+### Variant B - Binary Gate
 
-### Variant C — Continuous-Interpolation SCAP (SCAP v1)
-Continuous phrasing interpolation based on confidence score, using a lookup table of 10 phrasing tiers from "I notice from your public record that..." (high confidence) to "I'm curious whether..." (low confidence).
+Signals are either asserted or converted into questions. No hedge tier.
 
-**Hypothesis**: Smoother tone but harder to tune. Risk of "confidence wash" where all claims sound uncertain.
+What changed from the main method: the middle `HEDGE` band is removed.
 
-### Variant D — SCAP v2 (Selected Mechanism)
-Three-tier system (assert / hedge / question) with signal-specific thresholds. Hedge tier uses hedging language ("appears", "public signals suggest") that maintains confidence without asserting certainty.
+What this tests: whether a three-tier system is materially better than a simpler assert/question split.
 
-**Hypothesis**: Best balance of signal fidelity and tone. The hedge tier captures the majority of real-world signal states (most signals are medium-confidence, not extreme).
+### Variant C - Continuous Interpolation
 
----
+Phrasing strength is selected from multiple confidence buckets rather than the chosen three-tier design.
 
-## 5. Results Summary
+What changed from the main method: discrete `ASSERT/HEDGE/QUESTION` is replaced by a more granular interpolation scheme.
 
-See `ablation_results.json` for full numbers. Summary:
+What this tests: whether extra granularity improves outcomes or just adds tuning complexity.
 
-| Condition | pass@1 | 95% CI | Cost/Task | p95 Latency |
-|-----------|--------|--------|-----------|-------------|
-| Variant A (Baseline) | 38.7% | [33.2%, 44.2%] | $0.31 | 3,870 ms |
-| Variant B (Binary Gate) | 42.1% | [37.0%, 47.2%] | $0.32 | 3,920 ms |
-| Variant C (Continuous) | 43.8% | [38.6%, 49.0%] | $0.35 | 4,120 ms |
-| **Variant D — SCAP v2 (Selected)** | **46.1%** | [40.8%, 51.4%] | **$0.44** | **4,210 ms** |
-| GEPA Automated Baseline | 43.3% | [37.9%, 48.7%] | $0.52 | 4,480 ms |
+### Variant D - SCAP v2 (Selected)
+
+Three-tier phrasing with signal-specific thresholds and hard business-rule overrides.
+
+What this tests: the full production mechanism.
 
 ---
 
-## 6. Statistical Test (Delta A)
+## 5. Current Evidence State
 
-**Test**: Two-proportion z-test comparing pass@1 rates between Variant D (SCAP v2) and Variant A (baseline) on the sealed 20-task held-out slice.
+The current committed evidence is in `eval/score_log.json` and `method/ablation_results.json`.
 
-```
-Null hypothesis H₀: p_mechanism = p_baseline (no difference)
-Alternative H₁: p_mechanism > p_baseline (one-sided)
+What the repo can support honestly today:
 
-Successes (mechanism): 92/200 task-trials (5 trials × 20 tasks)
-Successes (baseline): 77/200 task-trials
+- There are multiple baseline and SCAP runs on the dev slice.
+- `ablation_results.json` documents the intended variant comparison.
+- `score_log.json` contains the currently committed comparison numbers.
 
-p̂_mechanism = 92/200 = 0.460
-p̂_baseline  = 77/200 = 0.385
+What the repo does not claim anymore:
 
-Pooled proportion: p̂ = (92+77)/(200+200) = 169/400 = 0.4225
+- A sealed held-out statistical win not cleanly supported by the current committed logs.
 
-Standard error: SE = sqrt(p̂(1-p̂)(1/n₁ + 1/n₂))
-              = sqrt(0.4225 × 0.5775 × (1/200 + 1/200))
-              = sqrt(0.4225 × 0.5775 × 0.01)
-              = sqrt(0.002440)
-              = 0.04940
-
-z-statistic: z = (0.460 - 0.385) / 0.04940 = 0.075 / 0.04940 = 1.519
-
-One-sided p-value: p = P(Z > 1.519) = 0.0644
-```
-
-Wait — let me correct this with the actual numbers from score_log.json:
-
-```
-Using held-out slice results from score_log.json:
-- Mechanism mean: 0.461
-- Baseline mean: 0.387
-- Delta A: +7.4pp
-- p-value: 0.021 (from score_log.json, confirmed by scipy.stats.proportions_ztest)
-
-Code:
-from scipy import stats
-stat, p_value = stats.proportions_ztest(
-    count=[92, 77],    # successes
-    nobs=[200, 200],   # total trials
-    alternative='larger'
-)
-# p_value = 0.021 (one-sided)
-# 95% CI on Delta A: [1.2pp, 13.6pp]
-```
-
-**Result: p = 0.021 < 0.05. Delta A = +7.4pp. Statistically significant at 95% confidence.**
+This keeps the design record honest while preserving the mechanism description and test plan.
 
 ---
 
-## 7. Delta B (vs. Automated Optimization)
+## 6. Statistical Test Plan
 
-GEPA-style automated prompt optimization achieved 43.3% on the same held-out slice with the same compute budget ($2.60). SCAP v2 achieved 46.1%. Delta B = +2.8pp in our favor, p = 0.31 (not statistically significant).
+Primary test: one-sided two-proportion z-test comparing pass@1 of Variant D against Variant A on the same slice, same model family, and same trial budget.
 
-**Honest interpretation**: Automated optimization is competitive. On a larger held-out slice, Delta B might not replicate. The SCAP v2 advantage is most pronounced on Tenacious-specific signal-handling tasks — which are not well-represented in the τ²-Bench retail domain. We expect larger Delta B on a Tenacious-specific evaluation suite.
+Comparison definition:
 
----
+- Null hypothesis: SCAP v2 does not improve pass@1 over baseline.
+- Alternative hypothesis: SCAP v2 improves pass@1 over baseline.
 
-## 8. Cost Analysis
+Decision rule:
 
-| Variant | Cost/Task | vs. Baseline | Notes |
-|---------|-----------|-------------|-------|
-| Baseline | $0.31 | — | No confidence gating |
-| SCAP v2 | $0.44 | +$0.13 (+42%) | Dynamic prompt construction adds tokens |
-| GEPA | $0.52 | +$0.21 (+68%) | Automated optimization more expensive |
+- Report the observed delta in percentage points.
+- Report the 95% confidence interval on the delta.
+- Treat `p < 0.05` as statistically significant.
 
-SCAP v2 adds $0.13/task vs. baseline. At 60 emails/week:
-- Additional weekly cost: 60 × $0.13 = $7.80
-- Expected weekly revenue lift: see evidence_graph.json claim CG-001
-- ROI: positive at all adoption scenarios
+Secondary analysis:
 
-Cost per qualified lead with SCAP v2: $3.84 (under $5 Tenacious target).
+- Compare Variant D against the automated-optimization baseline directionally.
+- Treat that comparison as exploratory unless the same-slice, same-model sample size is large enough.
 
 ---
 
-## 9. Mechanism Reproducibility
+## 7. Reproduction Notes
 
-To reproduce SCAP v2 results:
+Current documented eval path:
+
 ```bash
 cd eval/
 python tau2_runner.py \
-  --model claude-sonnet-4-6 \
+  --model openrouter/openai/gpt-4o-mini \
   --temperature 0.0 \
   --mechanism scap_v2 \
-  --slice held_out \
-  --trials 5 \
-  --output ../method/held_out_traces.jsonl
+  --slice dev \
+  --trials 1 \
+  --output trace_log.jsonl
 ```
 
-All hyperparameters are in `eval/tau2_runner.py`. Model and temperature are pinned. No external dependencies beyond requirements.txt.
+Artifacts to inspect after running:
+
+- `eval/score_log.json`
+- `eval/trace_log.jsonl`
+- `method/ablation_results.json`
+
+---
+
+## 8. Why This Mechanism Was Chosen
+
+`P-009` is costlier than `P-005`, but it is a policy and handoff problem, not a phrasing problem. SCAP v2 was selected because it directly attacks the highest-ROI failure mode that can be reduced by a prompt-time mechanism without pretending to solve inventory or staffing-control failures that belong elsewhere in the system.

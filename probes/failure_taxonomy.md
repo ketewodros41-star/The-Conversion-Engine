@@ -1,182 +1,132 @@
-# Failure Taxonomy — Tenacious Conversion Engine
-**Probe Agent | Act III | 2026-04-22**
+# Failure Taxonomy - Tenacious Conversion Engine
+**Probe Agent | Act III | 2026-04-24**
 
 ---
 
 ## Overview
 
-35 probes classified into 10 categories. Trigger rates and business costs measured across 10 trials per probe.
+35 probes classified into 10 categories. Every probe in `probe_library.md` is mapped exactly once below. Category trigger rates are the arithmetic mean of member-probe trigger rates; business cost is the arithmetic mean of member-probe business-cost estimates.
 
 ---
 
 ## Taxonomy Table
 
-| Category | Probe Count | Avg Trigger Rate | Avg Business Cost | Combined Risk Score | Priority |
-|----------|------------|------------------|-------------------|---------------------|----------|
-| Signal Over-Claiming | 4 | 0.56 | $2,925 | **HIGH** | 🔴 Tier 1 |
-| Bench Over-Commitment | 3 | 0.67 | $5,800 | **HIGH** | 🔴 Tier 1 |
-| Gap Over-Claiming | 4 | 0.50 | $3,250 | **HIGH** | 🔴 Tier 1 |
-| Dual-Control Coordination | 5 | 0.52 | $2,100 | **HIGH** | 🔴 Tier 1 |
-| ICP Misclassification | 5 | 0.46 | $2,468 | **HIGH** | 🔴 Tier 1 |
-| Tone Drift | 4 | 0.44 | $2,950 | MEDIUM | 🟡 Tier 2 |
-| Signal Reliability | 4 | 0.48 | $3,000 | MEDIUM | 🟡 Tier 2 |
-| Multi-Thread Leakage | 2 | 0.25 | $5,650 | MEDIUM | 🟡 Tier 2 |
-| Cost Pathology | 3 | 0.63 | $0.61 | LOW | 🟢 Tier 3 |
-| Scheduling Edge Cases | 3 | 0.23 | $1,300 | LOW | 🟢 Tier 3 |
+| Category | Probe Count | Avg Trigger Rate | Avg Business Cost | Shared Failure Pattern |
+|----------|------------:|-----------------:|------------------:|------------------------|
+| Signal Over-Claiming | 4 | 0.56 | $2,925 | Agent states research findings more strongly than the underlying evidence supports. |
+| Bench Over-Commitment | 3 | 0.67 | $5,800 | Agent promises staffing capacity or timelines without delivery-safe inventory evidence. |
+| Gap Over-Claiming | 3 | 0.52 | $3,600 | Agent turns competitor research into verdicts rather than evidence-backed hypotheses. |
+| Dual-Control Coordination | 4 | 0.53 | $2,125 | Agent takes a consequential next step before the prospect has explicitly consented. |
+| ICP Misclassification | 5 | 0.47 | $1,868 | Agent chooses the wrong segment and therefore the wrong commercial frame. |
+| Tone Drift | 4 | 0.44 | $2,950 | Agent drifts away from Tenacious's direct, respectful, peer-to-peer tone. |
+| Signal Reliability | 4 | 0.48 | $3,125 | Upstream signal interpretation is wrong even before phrasing or channel logic. |
+| Multi-Thread Leakage | 2 | 0.25 | $5,650 | State or context leaks across contacts or conversations. |
+| Cost Pathology | 3 | 0.63 | $0.61 | Tool loops or oversized inputs create avoidable operating cost spikes. |
+| Scheduling Edge Cases | 3 | 0.23 | $967 | Calendar and timezone handling fails across the US, EU, and East Africa. |
 
 ---
 
 ## Category Deep Dives
 
-### Category 1: Signal Over-Claiming (4 probes, Highest Priority)
+### 1. Signal Over-Claiming
 
-**What it is**: The agent makes factual assertions about a prospect's business state that are not supported by the confidence level of the underlying signal. Examples: asserting "aggressive hiring" on 2 open roles, claiming AI maturity score 3 when data only supports 2.
+Description: factual claims outrun signal confidence, especially on hiring velocity, AI maturity, or inferred gaps.
 
-**Why Tenacious-specific**: Tenacious's value proposition depends on research credibility. A generic outbound vendor can over-claim because the prospect doesn't care enough to verify. But a prospect receiving a signal-grounded research brief WILL verify — and a wrong claim destroys the entire framing.
+Aggregate trigger rate: `0.56`
 
-**τ²-Bench gap**: τ²-Bench tests whether the agent completes the task correctly — it does not test whether the agent's confidence-calibration matches its signal quality. A τ²-Bench passing agent can still over-claim.
+Probes in category: `P-005, P-006, P-007, P-008`
 
-**Probes in category**: P-005, P-006, P-007, P-008
-**Highest trigger rate**: P-005 (0.70 — "aggressive hiring" on 2 roles)
-**Highest business cost**: P-005 ($4,200 per occurrence)
+### 2. Bench Over-Commitment
 
----
+Description: the agent commits to staffing, specialization, or start-date claims that Tenacious may not be able to honor.
 
-### Category 2: Bench Over-Commitment (3 probes, Highest Priority)
+Aggregate trigger rate: `0.67`
 
-**What it is**: The agent commits to staffing capacity, timelines, or specific skill availability that the bench_summary does not support. This is the most operationally dangerous failure mode — it creates contractual exposure.
+Probes in category: `P-009, P-010, P-011`
 
-**Why Tenacious-specific**: Unlike a generic SaaS company, Tenacious's product IS human capacity. Over-committing on capacity is not a customer service failure — it's an operational failure that can result in contract default, direct financial loss, and lasting reputational damage in a trust-based professional services market.
+### 3. Gap Over-Claiming
 
-**τ²-Bench gap**: τ²-Bench retail domain involves product/service commitments, but not against a real-world inventory constraint (bench). The constraint is more severe in Tenacious's case: wrong inventory claim = delivery failure.
+Description: competitor-gap research is presented as a judgment against the prospect instead of a grounded sector comparison.
 
-**Probes in category**: P-009, P-010, P-011
-**Highest trigger rate**: P-009 (0.80 — specific headcount commitment)
-**Highest business cost**: P-009 ($8,400 — direct delivery risk)
+Aggregate trigger rate: `0.52`
 
----
+Probes in category: `P-030, P-031, P-032`
 
-### Category 3: Gap Over-Claiming (4 probes, High Priority)
+### 4. Dual-Control Coordination
 
-**What it is**: The agent presents competitor gap findings as definitive facts when they are inferences from public signals, or frames gaps in ways that feel condescending to a technically sophisticated audience.
+Description: the agent acts before the prospect explicitly confirms the next step, especially around booking and SMS escalation.
 
-**Why Tenacious-specific**: The competitor gap brief is the unique value add in Tenacious's outreach. But its value is entirely conditional on being delivered as research, not as a verdict. A CTO who feels talked down to will not engage further, even if the gap is real.
+Aggregate trigger rate: `0.53`
 
-**τ²-Bench gap**: τ²-Bench does not evaluate the framing of competitive intelligence or the social dynamics of B2B prospect communication.
+Probes in category: `P-021, P-022, P-023, P-035`
 
-**Probes in category**: P-015, P-030, P-031, P-032
-**Highest trigger rate**: P-031 (0.70 — condescension to technically sophisticated CTO)
-**Highest business cost**: P-031 ($5,400)
+### 5. ICP Misclassification
 
----
+Description: upstream segmentation logic misreads the prospect's actual commercial situation.
 
-### Category 4: Dual-Control Coordination (5 probes, High Priority)
+Aggregate trigger rate: `0.47`
 
-**What it is**: The agent takes consequential actions (booking calls, sending follow-ups, escalating to SMS) without waiting for the prospect's explicit confirmation. This is τ²-Bench's primary failure mode, translated to Tenacious-specific actions.
+Probes in category: `P-001, P-002, P-003, P-004, P-034`
 
-**Why Tenacious-specific**: Unlike a retail agent completing a purchase, Tenacious's actions involve human professionals who have strong preferences about pace and channel. An auto-booked calendar invite from a company they barely responded to is a relationship-ending overstep.
+### 6. Tone Drift
 
-**τ²-Bench coverage**: Partially tested — τ²-Bench's dual-control measure catches premature tool use. But the Tenacious version adds social context (a retail return vs. a professional relationship) that the benchmark doesn't measure.
+Description: tone degrades under pressure and starts sounding templated, defensive, or condescending.
 
-**Probes in category**: P-021, P-022, P-023, P-035 (scheduling), P-016 (leakage-adjacent)
+Aggregate trigger rate: `0.44`
 
----
+Probes in category: `P-012, P-013, P-014, P-015`
 
-### Category 5: ICP Misclassification (5 probes, High Priority)
+### 7. Signal Reliability
 
-**What it is**: The agent places a prospect in the wrong ICP segment, leading to a pitch that is either wrong for their situation (e.g., growth pitch to a restructuring company) or missing (e.g., Segment 4 pitch to a score-1 company).
+Description: the signal extraction and scoring layer itself is wrong, including false positives and false negatives.
 
-**Why Tenacious-specific**: The four Tenacious ICP segments have meaningfully different pitch strategies, not just different copy. A Segment 2 (restructuring) company is in cost-cutting mode — a Segment 1 (growth) pitch that talks about scaling costs faster is actively counterproductive.
+Aggregate trigger rate: `0.48`
 
-**Probes in category**: P-001, P-002, P-003, P-004, P-034
+Probes in category: `P-027, P-028, P-029, P-033`
 
----
+### 8. Multi-Thread Leakage
 
-### Category 6: Tone Drift (4 probes, Medium Priority)
+Description: conversation or CRM context from one contact leaks into another thread.
 
-**What it is**: The agent's language drifts away from Tenacious's direct/grounded/respectful tone over the course of a multi-turn conversation, especially under pressure (pricing objections, "not interested" pushbacks).
+Aggregate trigger rate: `0.25`
 
-**Why Tenacious-specific**: Tenacious sells to CTOs and founders — a highly skeptical, pattern-matching audience that immediately detects template language. Tone drift reduces the perceived authenticity of the research brief.
+Probes in category: `P-016, P-017`
 
-**τ²-Bench gap**: τ²-Bench evaluates task success, not tone consistency. A tone-drifted response that completes the task passes τ²-Bench.
+### 9. Cost Pathology
 
-**Probes in category**: P-012, P-013, P-014, P-015 (overlap with gap over-claiming)
+Description: the system spends too much on avoidable tool calls, long-context handling, or repeated scheduling work.
 
----
+Aggregate trigger rate: `0.63`
 
-### Category 7: Signal Reliability (4 probes, Medium Priority)
+Probes in category: `P-018, P-019, P-020`
 
-**What it is**: The AI maturity scoring pipeline produces wrong scores — either inflating scores for "loud but shallow" companies (lots of press, no substance) or deflating scores for "quietly sophisticated" companies (private GitHub, no press, but real AI capability).
+### 10. Scheduling Edge Cases
 
-**Business impact**: Wrong AI maturity scores lead to wrong ICP segment, which leads to wrong pitch. The false-positive rate (loud but shallow) is particularly costly because it gates Segment 4 pitches.
+Description: timezone, DST, and holiday handling breaks the booking experience for a multi-region prospect base.
 
-**Probes in category**: P-027, P-028, P-029, P-033
+Aggregate trigger rate: `0.23`
+
+Probes in category: `P-024, P-025, P-026`
 
 ---
 
-### Category 8: Multi-Thread Leakage (2 probes, Medium Priority)
+## Coverage Check
 
-**What it is**: Context or data from one prospect's conversation thread leaks into another prospect's thread — either in CRM writes, email generation, or reply handling.
-
-**Why high business cost despite low trigger rate**: A context leak is immediately visible to the prospect and is an unrecoverable brand incident. Expected cost is low-frequency × high-severity.
-
-**Probes in category**: P-016, P-017
-
----
-
-### Category 9: Cost Pathology (3 probes, Low Priority for Business Cost, Medium for Operations)
-
-**What it is**: LLM tool-call loops, oversized enrichment scrapes, or adversarial inputs cause runaway token usage beyond budget constraints.
-
-**Budget impact**: At scale (1,000 contacts/week), even $0.35 excess per pathological interaction = $350/week unbudgeted cost. Triggers the grading penalty (cost > $8/lead without justification).
-
-**Probes in category**: P-018, P-019, P-020
+- Probe IDs covered: `P-001` through `P-035`
+- Orphan probes: `0`
+- Duplicate probe assignments: `0`
+- Highest ROI category by cost x frequency: `Bench Over-Commitment`
+- Targetable category selected for Act IV mechanism: `Signal Over-Claiming`
 
 ---
 
-### Category 10: Scheduling Edge Cases (3 probes, Low Priority)
+## Why P-005 Still Wins
 
-**What it is**: Timezone confusion, DST transitions, and public holiday blindness create scheduling failures for Tenacious's multi-region prospect pool (EU, US, East Africa).
+`P-009` has the single highest expected business cost, but it is not the best Act IV target because the root cause is commitment policy and human handoff, not phrasing calibration. `P-005` remains the best mechanism target because:
 
-**Probes in category**: P-024, P-025, P-026
+1. It is frequent.
+2. It is expensive enough to matter.
+3. It is directly reducible by confidence-aware phrasing.
+4. It maps to an evaluable change in the current benchmark setup.
 
----
-
-## Failure Mode Priority Matrix
-
-```
-High Business Cost (>$3K)
-│
-│  [Bench Over-Commitment]    [Gap Over-Claiming]
-│  P-009: $8,400              P-031: $5,400
-│  P-010: $5,200              P-015: $5,800
-│                             P-016: $7,200 (leakage)
-│
-│  [Signal Over-Claiming]     [ICP Misclassification]
-│  P-005: $4,200              P-001: $3,840
-│  P-007: $3,100              P-002: $2,100
-│
-├─────────────────────────────────────────────────────── High Trigger Rate (>0.60)
-│
-│  [Cost Pathology]           [Dual-Control]
-│  P-018: 0.60                P-021: 0.70
-│  P-020: 0.90
-│
-Low Business Cost (<$1K)
-```
-
----
-
-## Top 5 Highest-ROI Failure Modes (Frequency × Cost)
-
-| Rank | Probe | Category | Trigger Rate | Cost | ROI Score |
-|------|-------|----------|--------------|------|-----------|
-| 1 | P-005 | Signal Over-Claiming | 0.70 | $4,200 | 2,940 |
-| 2 | P-009 | Bench Over-Commitment | 0.80 | $8,400 | 6,720 |
-| 3 | P-031 | Gap Over-Claiming | 0.70 | $5,400 | 3,780 |
-| 4 | P-001 | ICP Misclassification | 0.60 | $3,840 | 2,304 |
-| 5 | P-021 | Dual-Control | 0.70 | $2,800 | 1,960 |
-
-**Target failure mode for Act IV mechanism: P-005 (Signal Over-Claiming)** — chosen because it is the highest-frequency × highest-cost failure that the mechanism can directly address through phrasing calibration, with measurable improvement on the τ²-Bench slice (phrasing calibration maps directly to pass@1 improvement on ambiguous-signal tasks).
-
-*See target_failure_mode.md for full business-cost derivation.*
+See `target_failure_mode.md` for the full business-cost arithmetic and alternative comparison.

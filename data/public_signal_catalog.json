@@ -1,0 +1,309 @@
+[
+  {
+    "uuid": "cb_nexusai_2024",
+    "name": "NexusAI Labs",
+    "homepage_url": "https://nexusai-labs.example",
+    "employee_count": 47,
+    "category_list": [{"value": "Enterprise Software"}, {"value": "AI Infrastructure"}, {"value": "MLOps"}],
+    "funding_rounds": [
+      {"announced_on": "2026-01-14T00:00:00+00:00", "investment_type": "Series B", "raised_amount_usd": 18000000}
+    ],
+    "people": [
+      {"title": "Chief Technology Officer", "name": "Alex Rivera", "start_date": "2025-01-10T00:00:00+00:00"}
+    ],
+    "news": [
+      {
+        "title": "NexusAI closes Series B to expand AI infrastructure platform",
+        "description": "Leadership said the company is expanding platform engineering and data tooling.",
+        "published_at": "2026-01-14T00:00:00+00:00",
+        "url": "https://www.crunchbase.com/funding_round/nexusai-labs-series-b"
+      },
+      {
+        "title": "NexusAI CTO outlines AI-native platform strategy",
+        "description": "The CTO described the company as building an AI-native platform stack.",
+        "published_at": "2026-02-20T00:00:00+00:00",
+        "url": "https://techcrunch.com/2026/02/nexusai-labs-cto"
+      }
+    ],
+    "builtwith_top_technologies": ["Python", "FastAPI", "Kubernetes", "Ray", "dbt", "Snowflake"],
+    "github_url": "https://github.com/nexusai-labs",
+    "job_history": {
+      "snapshots": [
+        {
+          "observed_at": "2026-02-22T00:00:00+00:00",
+          "open_roles": 5,
+          "role_titles": ["Platform Engineer", "Backend Engineer", "Data Platform Engineer", "ML Engineer", "DevOps Engineer"],
+          "source_attribution": ["https://wellfound.com/company/nexusai-labs/jobs", "https://builtin.com/company/nexusai-labs/jobs"]
+        },
+        {
+          "observed_at": "2026-04-22T00:00:00+00:00",
+          "open_roles": 12,
+          "role_titles": ["Senior ML Engineer", "LLM Infrastructure Engineer", "Data Platform Engineer", "Applied Scientist", "Platform Engineer", "Backend Engineer", "DevOps Engineer", "MLOps Engineer", "Software Engineer", "Site Reliability Engineer", "Technical Recruiter", "Product Designer"],
+          "source_attribution": ["https://wellfound.com/company/nexusai-labs/jobs", "https://builtin.com/company/nexusai-labs/jobs", "https://www.linkedin.com/company/nexusai-labs/jobs/"]
+        }
+      ]
+    }
+  },
+  {
+    "uuid": "cb_gradient_systems_2024",
+    "name": "Gradient Systems",
+    "homepage_url": "https://gradient-systems.example",
+    "employee_count": 82,
+    "category_list": [{"value": "Enterprise Software"}, {"value": "AI Infrastructure"}, {"value": "MLOps"}],
+    "funding_rounds": [
+      {"announced_on": "2025-11-08T00:00:00+00:00", "investment_type": "Series B", "raised_amount_usd": 24000000}
+    ],
+    "people": [
+      {"title": "Head of AI", "name": "Dr. Sarah Chen", "start_date": "2026-02-03T00:00:00+00:00"}
+    ],
+    "news": [
+      {
+        "title": "Gradient Systems appoints Head of AI",
+        "description": "The company named Dr. Sarah Chen as Head of AI to lead model evaluation and platform strategy.",
+        "published_at": "2026-02-03T00:00:00+00:00",
+        "url": "https://gradient-systems.example/team"
+      },
+      {
+        "title": "Gradient Systems CTO keynote on evaluation methodology",
+        "description": "The CTO discussed evaluation discipline for production GenAI systems at MLSys.",
+        "published_at": "2026-03-11T00:00:00+00:00",
+        "url": "https://gradient-systems.example/research/mlsys-2026"
+      }
+    ],
+    "builtwith_top_technologies": ["Python", "Kubernetes", "Ray", "dbt", "Snowflake", "Terraform"],
+    "github_url": "https://github.com/gradient-systems",
+    "job_history": {
+      "snapshots": [
+        {
+          "observed_at": "2026-02-22T00:00:00+00:00",
+          "open_roles": 14,
+          "role_titles": ["ML Engineer", "Platform Engineer", "Data Engineer", "Backend Engineer", "Applied Scientist", "Site Reliability Engineer"],
+          "source_attribution": ["https://wellfound.com/company/gradient-systems/jobs", "https://builtin.com/company/gradient-systems/jobs"]
+        },
+        {
+          "observed_at": "2026-04-22T00:00:00+00:00",
+          "open_roles": 18,
+          "role_titles": ["Senior ML Engineer", "Staff Applied Scientist", "Inference Engineer", "MLOps Engineer", "Data Platform Engineer", "Platform Engineer", "Backend Engineer", "Evaluation Engineer"],
+          "source_attribution": ["https://wellfound.com/company/gradient-systems/jobs", "https://builtin.com/company/gradient-systems/jobs", "https://www.linkedin.com/company/gradient-systems/jobs/"]
+        }
+      ]
+    }
+  },
+  {
+    "uuid": "cb_synapse_data_2024",
+    "name": "Synapse Data",
+    "homepage_url": "https://synapse-data.example",
+    "employee_count": 61,
+    "category_list": [{"value": "Enterprise Software"}, {"value": "AI Infrastructure"}, {"value": "MLOps"}],
+    "funding_rounds": [
+      {"announced_on": "2025-09-12T00:00:00+00:00", "investment_type": "Series A", "raised_amount_usd": 12000000}
+    ],
+    "people": [
+      {"title": "VP Data", "name": "Jordan Mensah", "start_date": "2026-01-18T00:00:00+00:00"}
+    ],
+    "news": [
+      {
+        "title": "Synapse Data hires VP Data to scale feature platform",
+        "description": "Leadership said the new VP Data will own ML platform and feature engineering.",
+        "published_at": "2026-01-18T00:00:00+00:00",
+        "url": "https://synapse-data.example/team"
+      },
+      {
+        "title": "Synapse Data open-sources data quality pipeline",
+        "description": "The company published tooling for feature validation and model data quality.",
+        "published_at": "2026-03-09T00:00:00+00:00",
+        "url": "https://github.com/synapse-data/dq-pipeline"
+      }
+    ],
+    "builtwith_top_technologies": ["Python", "dbt", "Snowflake", "Airflow", "Kubernetes"],
+    "github_url": "https://github.com/synapse-data",
+    "job_history": {
+      "snapshots": [
+        {
+          "observed_at": "2026-02-22T00:00:00+00:00",
+          "open_roles": 7,
+          "role_titles": ["ML Engineer", "Data Engineer", "Platform Engineer", "Backend Engineer"],
+          "source_attribution": ["https://builtin.com/company/synapse-data/jobs"]
+        },
+        {
+          "observed_at": "2026-04-22T00:00:00+00:00",
+          "open_roles": 10,
+          "role_titles": ["ML Engineer", "Senior ML Engineer", "Data Platform Engineer", "Applied Scientist", "Platform Engineer", "Backend Engineer"],
+          "source_attribution": ["https://builtin.com/company/synapse-data/jobs", "https://wellfound.com/company/synapse-data/jobs"]
+        }
+      ]
+    }
+  },
+  {
+    "uuid": "cb_apex_ml_2024",
+    "name": "Apex ML",
+    "homepage_url": "https://apex-ml.example",
+    "employee_count": 73,
+    "category_list": [{"value": "Enterprise Software"}, {"value": "AI Infrastructure"}, {"value": "MLOps"}],
+    "funding_rounds": [
+      {"announced_on": "2025-10-02T00:00:00+00:00", "investment_type": "Series B", "raised_amount_usd": 21000000}
+    ],
+    "people": [
+      {"title": "VP Data", "name": "Priya Ndlovu", "start_date": "2026-02-10T00:00:00+00:00"}
+    ],
+    "news": [
+      {
+        "title": "Apex ML names VP Data to lead model platform",
+        "description": "The newly appointed VP Data will own evaluation and feature reliability.",
+        "published_at": "2026-02-10T00:00:00+00:00",
+        "url": "https://apex-ml.example/team"
+      },
+      {
+        "title": "Apex ML publishes LLM evaluation harness",
+        "description": "The company shared a public evaluation framework for GenAI reliability.",
+        "published_at": "2026-03-15T00:00:00+00:00",
+        "url": "https://github.com/apex-ml/llm-eval-harness"
+      }
+    ],
+    "builtwith_top_technologies": ["Python", "Ray", "dbt", "Snowflake", "Kubernetes"],
+    "github_url": "https://github.com/apex-ml",
+    "job_history": {
+      "snapshots": [
+        {
+          "observed_at": "2026-02-22T00:00:00+00:00",
+          "open_roles": 9,
+          "role_titles": ["ML Engineer", "Platform Engineer", "Data Engineer", "Backend Engineer", "Evaluation Engineer"],
+          "source_attribution": ["https://wellfound.com/company/apex-ml/jobs"]
+        },
+        {
+          "observed_at": "2026-04-22T00:00:00+00:00",
+          "open_roles": 13,
+          "role_titles": ["Senior ML Engineer", "Applied Scientist", "Evaluation Engineer", "Inference Engineer", "Platform Engineer", "Data Engineer", "Backend Engineer"],
+          "source_attribution": ["https://wellfound.com/company/apex-ml/jobs", "https://builtin.com/company/apex-ml/jobs"]
+        }
+      ]
+    }
+  },
+  {
+    "uuid": "cb_vertex_inference_2024",
+    "name": "Vertex Inference",
+    "homepage_url": "https://vertex-inference.example",
+    "employee_count": 92,
+    "category_list": [{"value": "Enterprise Software"}, {"value": "AI Infrastructure"}, {"value": "MLOps"}],
+    "funding_rounds": [
+      {"announced_on": "2026-01-09T00:00:00+00:00", "investment_type": "Series B", "raised_amount_usd": 22000000}
+    ],
+    "people": [
+      {"title": "Head of ML Platform", "name": "Lina Patel", "start_date": "2026-02-22T00:00:00+00:00"}
+    ],
+    "news": [
+      {
+        "title": "Vertex Inference hires Head of ML Platform",
+        "description": "The new leader will expand inference platform reliability and evaluation.",
+        "published_at": "2026-02-22T00:00:00+00:00",
+        "url": "https://vertex-inference.example/team"
+      },
+      {
+        "title": "Vertex Inference CEO says company has been AI-native from day one",
+        "description": "The CEO outlined long-term AI platform investments and evaluation discipline.",
+        "published_at": "2026-03-04T00:00:00+00:00",
+        "url": "https://techcrunch.com/2026/03/vertex-inference-ai-native"
+      }
+    ],
+    "builtwith_top_technologies": ["Python", "Kubernetes", "Ray", "Snowflake", "Terraform"],
+    "github_url": "https://github.com/vertex-inference",
+    "job_history": {
+      "snapshots": [
+        {
+          "observed_at": "2026-02-22T00:00:00+00:00",
+          "open_roles": 15,
+          "role_titles": ["ML Engineer", "Platform Engineer", "Inference Engineer", "Data Engineer", "Applied Scientist"],
+          "source_attribution": ["https://wellfound.com/company/vertex-inference/jobs"]
+        },
+        {
+          "observed_at": "2026-04-22T00:00:00+00:00",
+          "open_roles": 20,
+          "role_titles": ["Senior ML Engineer", "Staff Inference Engineer", "Applied Scientist", "Evaluation Engineer", "Platform Engineer", "Data Platform Engineer", "Backend Engineer"],
+          "source_attribution": ["https://wellfound.com/company/vertex-inference/jobs", "https://builtin.com/company/vertex-inference/jobs", "https://www.linkedin.com/company/vertex-inference/jobs/"]
+        }
+      ]
+    }
+  },
+  {
+    "uuid": "cb_clearml_labs_2024",
+    "name": "ClearML Labs",
+    "homepage_url": "https://clearml-labs.example",
+    "employee_count": 54,
+    "category_list": [{"value": "Enterprise Software"}, {"value": "AI Infrastructure"}, {"value": "MLOps"}],
+    "funding_rounds": [
+      {"announced_on": "2025-08-19T00:00:00+00:00", "investment_type": "Series A", "raised_amount_usd": 14000000}
+    ],
+    "people": [
+      {"title": "VP of Data Engineering", "name": "Maya Bekele", "start_date": "2026-01-30T00:00:00+00:00"}
+    ],
+    "news": [
+      {
+        "title": "ClearML Labs appoints VP of Data Engineering",
+        "description": "The new VP will own data platform modernization for production ML.",
+        "published_at": "2026-01-30T00:00:00+00:00",
+        "url": "https://clearml-labs.example/team"
+      },
+      {
+        "title": "ClearML Labs CTO blog on production ML pipelines",
+        "description": "The CTO described production ML pipeline design and model evaluation practices.",
+        "published_at": "2026-03-22T00:00:00+00:00",
+        "url": "https://clearml-labs.example/blog/production-ml-pipelines"
+      }
+    ],
+    "builtwith_top_technologies": ["Python", "dbt", "Ray", "Snowflake", "Kubernetes"],
+    "github_url": "https://github.com/clearml-labs",
+    "job_history": {
+      "snapshots": [
+        {
+          "observed_at": "2026-02-22T00:00:00+00:00",
+          "open_roles": 8,
+          "role_titles": ["ML Engineer", "Data Platform Engineer", "Backend Engineer", "Platform Engineer"],
+          "source_attribution": ["https://builtin.com/company/clearml-labs/jobs"]
+        },
+        {
+          "observed_at": "2026-04-22T00:00:00+00:00",
+          "open_roles": 11,
+          "role_titles": ["Senior ML Engineer", "Data Platform Engineer", "Applied Scientist", "MLOps Engineer", "Backend Engineer", "Platform Engineer"],
+          "source_attribution": ["https://builtin.com/company/clearml-labs/jobs", "https://wellfound.com/company/clearml-labs/jobs"]
+        }
+      ]
+    }
+  },
+  {
+    "uuid": "cb_meridian_infraai_2024",
+    "name": "Meridian InfraAI",
+    "homepage_url": "https://meridian-infraai.example",
+    "employee_count": 39,
+    "category_list": [{"value": "Enterprise Software"}, {"value": "AI Infrastructure"}, {"value": "MLOps"}],
+    "funding_rounds": [
+      {"announced_on": "2025-07-15T00:00:00+00:00", "investment_type": "Series A", "raised_amount_usd": 9000000}
+    ],
+    "people": [],
+    "news": [
+      {
+        "title": "Meridian InfraAI CTO posts on LLM ops",
+        "description": "The CTO discussed observability for LLM serving workloads.",
+        "published_at": "2026-03-02T00:00:00+00:00",
+        "url": "https://meridian-infraai.example/blog/llm-ops"
+      }
+    ],
+    "builtwith_top_technologies": ["Python", "PostgreSQL", "Docker"],
+    "github_url": "",
+    "job_history": {
+      "snapshots": [
+        {
+          "observed_at": "2026-02-22T00:00:00+00:00",
+          "open_roles": 3,
+          "role_titles": ["Backend Engineer", "Platform Engineer", "DevOps Engineer"],
+          "source_attribution": ["https://meridian-infraai.example/careers"]
+        },
+        {
+          "observed_at": "2026-04-22T00:00:00+00:00",
+          "open_roles": 5,
+          "role_titles": ["ML Engineer", "Platform Engineer", "Backend Engineer", "DevOps Engineer", "Customer Engineer"],
+          "source_attribution": ["https://meridian-infraai.example/careers"]
+        }
+      ]
+    }
+  }
+]

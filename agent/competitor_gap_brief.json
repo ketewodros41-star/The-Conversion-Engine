@@ -1,148 +1,606 @@
 {
-  "brief_version": "1.0",
-  "generated_at": "2026-04-22T09:22:11Z",
-  "generated_by": "Tenacious Conversion Engine — Enrichment Agent",
   "prospect_id": "cb_nexusai_2024",
-  "prospect_company": "NexusAI Labs",
-  "prospect_sector": "Enterprise Software / AI Infrastructure",
-  "prospect_size_band": "15-80 employees",
-  "prospect_ai_maturity_score": 2,
-  "analysis_scope": "MLOps / AI Infrastructure sector, Series A-C stage companies (15-150 employees), North America",
-  "top_quartile_peers": [
+  "sector": "Enterprise Software, AI Infrastructure, MLOps",
+  "selection_criteria": {
+    "sector_match": "Same top-level industry category as the prospect",
+    "employee_band": "0.25x to 4x prospect headcount",
+    "funding_minimum": "At least one funding round on record (excludes pre-revenue stubs)",
+    "top_quartile_threshold": "AI maturity score >= 2 on the same 6-signal framework applied to the prospect",
+    "max_returned": 10,
+    "min_for_valid_analysis": 5
+  },
+  "competitors_analyzed": [
     {
-      "company": "Gradient Systems",
-      "crunchbase_id": "cb_gradient_systems_2022",
-      "funding_stage": "Series C",
-      "employee_count": 112,
+      "name": "Gradient Systems",
+      "domain": "gradient-systems.example",
       "ai_maturity_score": 3,
-      "ai_maturity_source": "Public GitHub (150+ commits/month on core ML infra), named Head of AI (Dr. Sarah Chen, ex-OpenAI), CTO keynote at MLSys 2026",
-      "practices": [
-        "Dedicated ML platform team (5+ engineers) separate from product engineering",
-        "Published inference optimization paper (NeurIPS 2025 workshop)",
-        "Public AI roadmap updated quarterly"
+      "ai_maturity_justification": [
+        "5 of 8 engineering roles are AI-adjacent",
+        "Recent engineering leadership hire: Head of AI",
+        "GitHub URL on record: https://github.com/gradient-systems"
+      ],
+      "ai_maturity_breakdown": [
+        {
+          "signal": "AI-adjacent open roles",
+          "weight": "HIGH",
+          "evidence": "5 of 8 engineering roles are AI-adjacent",
+          "source_url": "https://wellfound.com/company/gradient-systems/jobs",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.88
+        },
+        {
+          "signal": "Named AI/ML leadership",
+          "weight": "HIGH",
+          "evidence": "Recent engineering leadership hire: Head of AI",
+          "source_url": "https://gradient-systems.example/team",
+          "contribution": "strong positive",
+          "signal_confidence": 0.8
+        },
+        {
+          "signal": "Public GitHub org activity",
+          "weight": "MEDIUM",
+          "evidence": "GitHub URL on record: https://github.com/gradient-systems",
+          "source_url": "https://github.com/gradient-systems",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.75
+        },
+        {
+          "signal": "Executive commentary on AI/ML",
+          "weight": "MEDIUM",
+          "evidence": "2 public news item(s) with AI/ML commentary",
+          "source_url": "https://gradient-systems.example/team",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.82
+        },
+        {
+          "signal": "Modern data/ML stack",
+          "weight": "LOW",
+          "evidence": "Detected: Python, Kubernetes, Ray",
+          "source_url": "https://gradient-systems.example",
+          "contribution": "positive",
+          "signal_confidence": 0.8
+        },
+        {
+          "signal": "Strategic communications",
+          "weight": "LOW",
+          "evidence": "2 strategic communication(s) in public records",
+          "source_url": "https://gradient-systems.example/team",
+          "contribution": "positive",
+          "signal_confidence": 0.68
+        }
+      ],
+      "headcount_band": "80_to_90",
+      "top_quartile": true,
+      "sources_checked": [
+        "https://wellfound.com/company/gradient-systems/jobs",
+        "https://gradient-systems.example/team",
+        "https://github.com/gradient-systems",
+        "https://gradient-systems.example/team"
       ]
     },
     {
-      "company": "Synapse Data",
-      "crunchbase_id": "cb_synapse_data_2023",
-      "funding_stage": "Series B",
-      "employee_count": 68,
+      "name": "Synapse Data",
+      "domain": "synapse-data.example",
       "ai_maturity_score": 3,
-      "ai_maturity_source": "LinkedIn: VP of Data Science role filled, 8 ML engineer openings, public dbt Cloud blog posts",
-      "practices": [
-        "Fully automated data quality pipeline (open-sourced on GitHub)",
-        "Dedicated Head of Data Platform hired at 40-person stage",
-        "Real-time feature store in production"
+      "ai_maturity_justification": [
+        "3 of 6 engineering roles are AI-adjacent",
+        "Recent engineering leadership hire: VP Data",
+        "GitHub URL on record: https://github.com/synapse-data"
+      ],
+      "ai_maturity_breakdown": [
+        {
+          "signal": "AI-adjacent open roles",
+          "weight": "HIGH",
+          "evidence": "3 of 6 engineering roles are AI-adjacent",
+          "source_url": "https://builtin.com/company/synapse-data/jobs",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.88
+        },
+        {
+          "signal": "Named AI/ML leadership",
+          "weight": "HIGH",
+          "evidence": "Recent engineering leadership hire: VP Data",
+          "source_url": "https://synapse-data.example/team",
+          "contribution": "strong positive",
+          "signal_confidence": 0.8
+        },
+        {
+          "signal": "Public GitHub org activity",
+          "weight": "MEDIUM",
+          "evidence": "GitHub URL on record: https://github.com/synapse-data",
+          "source_url": "https://github.com/synapse-data",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.75
+        },
+        {
+          "signal": "Executive commentary on AI/ML",
+          "weight": "MEDIUM",
+          "evidence": "2 public news item(s) with AI/ML commentary",
+          "source_url": "https://synapse-data.example/team",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.82
+        },
+        {
+          "signal": "Modern data/ML stack",
+          "weight": "LOW",
+          "evidence": "Detected: Python, dbt, Snowflake",
+          "source_url": "https://synapse-data.example",
+          "contribution": "positive",
+          "signal_confidence": 0.8
+        },
+        {
+          "signal": "Strategic communications",
+          "weight": "LOW",
+          "evidence": "2 strategic communication(s) in public records",
+          "source_url": "https://synapse-data.example/team",
+          "contribution": "positive",
+          "signal_confidence": 0.68
+        }
+      ],
+      "headcount_band": "60_to_70",
+      "top_quartile": true,
+      "sources_checked": [
+        "https://builtin.com/company/synapse-data/jobs",
+        "https://synapse-data.example/team",
+        "https://github.com/synapse-data",
+        "https://synapse-data.example/team"
       ]
     },
     {
-      "company": "Apex ML",
-      "crunchbase_id": "cb_apex_ml_2023",
-      "funding_stage": "Series B",
-      "employee_count": 54,
+      "name": "Apex ML",
+      "domain": "apex-ml.example",
       "ai_maturity_score": 3,
-      "ai_maturity_source": "Executive interviews: CEO named AI-first in 3 separate 2025 interviews, VP Data hired Q3 2025, GitHub 80+ weekly commits",
-      "practices": [
-        "Model monitoring and drift detection in production (Weights & Biases)",
-        "Structured LLM evaluation suite (public eval harness on GitHub)",
-        "Data contracts enforced at ingestion layer"
+      "ai_maturity_justification": [
+        "4 of 7 engineering roles are AI-adjacent",
+        "Recent engineering leadership hire: VP Data",
+        "GitHub URL on record: https://github.com/apex-ml"
+      ],
+      "ai_maturity_breakdown": [
+        {
+          "signal": "AI-adjacent open roles",
+          "weight": "HIGH",
+          "evidence": "4 of 7 engineering roles are AI-adjacent",
+          "source_url": "https://wellfound.com/company/apex-ml/jobs",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.88
+        },
+        {
+          "signal": "Named AI/ML leadership",
+          "weight": "HIGH",
+          "evidence": "Recent engineering leadership hire: VP Data",
+          "source_url": "https://apex-ml.example/team",
+          "contribution": "strong positive",
+          "signal_confidence": 0.8
+        },
+        {
+          "signal": "Public GitHub org activity",
+          "weight": "MEDIUM",
+          "evidence": "GitHub URL on record: https://github.com/apex-ml",
+          "source_url": "https://github.com/apex-ml",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.75
+        },
+        {
+          "signal": "Executive commentary on AI/ML",
+          "weight": "MEDIUM",
+          "evidence": "2 public news item(s) with AI/ML commentary",
+          "source_url": "https://apex-ml.example/team",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.82
+        },
+        {
+          "signal": "Modern data/ML stack",
+          "weight": "LOW",
+          "evidence": "Detected: Python, Ray, dbt",
+          "source_url": "https://apex-ml.example",
+          "contribution": "positive",
+          "signal_confidence": 0.8
+        },
+        {
+          "signal": "Strategic communications",
+          "weight": "LOW",
+          "evidence": "2 strategic communication(s) in public records",
+          "source_url": "https://apex-ml.example/team",
+          "contribution": "positive",
+          "signal_confidence": 0.68
+        }
+      ],
+      "headcount_band": "70_to_80",
+      "top_quartile": true,
+      "sources_checked": [
+        "https://wellfound.com/company/apex-ml/jobs",
+        "https://apex-ml.example/team",
+        "https://github.com/apex-ml",
+        "https://apex-ml.example/team"
       ]
     },
     {
-      "company": "Meridian InfraAI",
-      "crunchbase_id": "cb_meridian_infraai_2024",
-      "funding_stage": "Series A",
-      "employee_count": 38,
+      "name": "Vertex Inference",
+      "domain": "vertex-inference.example",
+      "ai_maturity_score": 3,
+      "ai_maturity_justification": [
+        "4 of 7 engineering roles are AI-adjacent",
+        "Recent engineering leadership hire: Head of ML Platform",
+        "GitHub URL on record: https://github.com/vertex-inference"
+      ],
+      "ai_maturity_breakdown": [
+        {
+          "signal": "AI-adjacent open roles",
+          "weight": "HIGH",
+          "evidence": "4 of 7 engineering roles are AI-adjacent",
+          "source_url": "https://wellfound.com/company/vertex-inference/jobs",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.88
+        },
+        {
+          "signal": "Named AI/ML leadership",
+          "weight": "HIGH",
+          "evidence": "Recent engineering leadership hire: Head of ML Platform",
+          "source_url": "https://vertex-inference.example/team",
+          "contribution": "strong positive",
+          "signal_confidence": 0.8
+        },
+        {
+          "signal": "Public GitHub org activity",
+          "weight": "MEDIUM",
+          "evidence": "GitHub URL on record: https://github.com/vertex-inference",
+          "source_url": "https://github.com/vertex-inference",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.75
+        },
+        {
+          "signal": "Executive commentary on AI/ML",
+          "weight": "MEDIUM",
+          "evidence": "2 public news item(s) with AI/ML commentary",
+          "source_url": "https://vertex-inference.example/team",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.82
+        },
+        {
+          "signal": "Modern data/ML stack",
+          "weight": "LOW",
+          "evidence": "Detected: Python, Kubernetes, Ray",
+          "source_url": "https://vertex-inference.example",
+          "contribution": "positive",
+          "signal_confidence": 0.8
+        },
+        {
+          "signal": "Strategic communications",
+          "weight": "LOW",
+          "evidence": "2 strategic communication(s) in public records",
+          "source_url": "https://vertex-inference.example/team",
+          "contribution": "positive",
+          "signal_confidence": 0.68
+        }
+      ],
+      "headcount_band": "90_to_100",
+      "top_quartile": true,
+      "sources_checked": [
+        "https://wellfound.com/company/vertex-inference/jobs",
+        "https://vertex-inference.example/team",
+        "https://github.com/vertex-inference",
+        "https://vertex-inference.example/team"
+      ]
+    },
+    {
+      "name": "ClearML Labs",
+      "domain": "clearml-labs.example",
+      "ai_maturity_score": 3,
+      "ai_maturity_justification": [
+        "3 of 6 engineering roles are AI-adjacent",
+        "Recent engineering leadership hire: VP of Data Engineering",
+        "GitHub URL on record: https://github.com/clearml-labs"
+      ],
+      "ai_maturity_breakdown": [
+        {
+          "signal": "AI-adjacent open roles",
+          "weight": "HIGH",
+          "evidence": "3 of 6 engineering roles are AI-adjacent",
+          "source_url": "https://builtin.com/company/clearml-labs/jobs",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.88
+        },
+        {
+          "signal": "Named AI/ML leadership",
+          "weight": "HIGH",
+          "evidence": "Recent engineering leadership hire: VP of Data Engineering",
+          "source_url": "https://clearml-labs.example/team",
+          "contribution": "strong positive",
+          "signal_confidence": 0.8
+        },
+        {
+          "signal": "Public GitHub org activity",
+          "weight": "MEDIUM",
+          "evidence": "GitHub URL on record: https://github.com/clearml-labs",
+          "source_url": "https://github.com/clearml-labs",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.75
+        },
+        {
+          "signal": "Executive commentary on AI/ML",
+          "weight": "MEDIUM",
+          "evidence": "2 public news item(s) with AI/ML commentary",
+          "source_url": "https://clearml-labs.example/team",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.82
+        },
+        {
+          "signal": "Modern data/ML stack",
+          "weight": "LOW",
+          "evidence": "Detected: Python, dbt, Ray",
+          "source_url": "https://clearml-labs.example",
+          "contribution": "positive",
+          "signal_confidence": 0.8
+        },
+        {
+          "signal": "Strategic communications",
+          "weight": "LOW",
+          "evidence": "2 strategic communication(s) in public records",
+          "source_url": "https://clearml-labs.example/team",
+          "contribution": "positive",
+          "signal_confidence": 0.68
+        }
+      ],
+      "headcount_band": "50_to_60",
+      "top_quartile": true,
+      "sources_checked": [
+        "https://builtin.com/company/clearml-labs/jobs",
+        "https://clearml-labs.example/team",
+        "https://github.com/clearml-labs",
+        "https://clearml-labs.example/team"
+      ]
+    },
+    {
+      "name": "Meridian InfraAI",
+      "domain": "meridian-infraai.example",
       "ai_maturity_score": 2,
-      "ai_maturity_source": "5 ML role openings, CTO public blog posts on LLM ops, no named AI leadership",
-      "practices": [
-        "Basic CI/CD for model deployment",
-        "Starting to implement feature store (in progress)"
-      ]
-    },
-    {
-      "company": "Prism Data",
-      "crunchbase_id": "cb_prism_data_2022",
-      "funding_stage": "Series C",
-      "employee_count": 145,
-      "ai_maturity_score": 3,
-      "ai_maturity_source": "Chief AI Officer on team page, 15 AI/ML openings, 3 published papers in 2025, Databricks Summit sponsor",
-      "practices": [
-        "AI governance framework (published blog, 2025)",
-        "Dedicated AI safety review process",
-        "Cross-functional AI product team (not embedded in engineering)"
+      "ai_maturity_justification": [
+        "1 of 5 engineering roles are AI-adjacent",
+        "1 public news item(s) with AI/ML commentary",
+        "Detected: Python, PostgreSQL, Docker"
+      ],
+      "ai_maturity_breakdown": [
+        {
+          "signal": "AI-adjacent open roles",
+          "weight": "HIGH",
+          "evidence": "1 of 5 engineering roles are AI-adjacent",
+          "source_url": "https://meridian-infraai.example/careers",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.8
+        },
+        {
+          "signal": "Named AI/ML leadership",
+          "weight": "HIGH",
+          "evidence": "No named AI/ML leadership found",
+          "source_url": "",
+          "contribution": "absent",
+          "signal_confidence": 0.75
+        },
+        {
+          "signal": "Public GitHub org activity",
+          "weight": "MEDIUM",
+          "evidence": "No public GitHub org activity detected in available records",
+          "source_url": "",
+          "contribution": "absent",
+          "signal_confidence": 0.5
+        },
+        {
+          "signal": "Executive commentary on AI/ML",
+          "weight": "MEDIUM",
+          "evidence": "1 public news item(s) with AI/ML commentary",
+          "source_url": "https://meridian-infraai.example/blog/llm-ops",
+          "contribution": "moderate positive",
+          "signal_confidence": 0.82
+        },
+        {
+          "signal": "Modern data/ML stack",
+          "weight": "LOW",
+          "evidence": "Detected: Python, PostgreSQL, Docker",
+          "source_url": "https://meridian-infraai.example",
+          "contribution": "positive",
+          "signal_confidence": 0.8
+        },
+        {
+          "signal": "Strategic communications",
+          "weight": "LOW",
+          "evidence": "1 strategic communication(s) in public records",
+          "source_url": "https://meridian-infraai.example/blog/llm-ops",
+          "contribution": "positive",
+          "signal_confidence": 0.68
+        }
+      ],
+      "headcount_band": "30_to_40",
+      "top_quartile": true,
+      "sources_checked": [
+        "https://meridian-infraai.example/careers",
+        "https://meridian-infraai.example/blog/llm-ops",
+        "https://meridian-infraai.example",
+        "https://meridian-infraai.example/blog/llm-ops"
       ]
     }
   ],
-  "sector_ai_maturity_distribution": {
-    "score_0": {"count": 1, "pct": 0.10},
-    "score_1": {"count": 2, "pct": 0.20},
-    "score_2": {"count": 3, "pct": 0.30},
-    "score_3": {"count": 4, "pct": 0.40},
-    "median_score": 2.5,
-    "prospect_percentile": 35
+  "top_quartile_count": 6,
+  "sparse_sector": false,
+  "sparse_sector_note": null,
+  "distribution_position": {
+    "sector_sample_size": 7,
+    "top_quartile_count": 6,
+    "prospect_ai_maturity_score": 2,
+    "prospect_percentile_rank": 29,
+    "description": "Prospect sits at approximately the 29th percentile of the 7-company sector sample. Top-quartile threshold is score >= 2 (6 of 7 companies qualify)."
   },
-  "prospect_position": {
-    "score": 2,
-    "percentile_in_sector": 35,
-    "interpretation": "NexusAI Labs sits in the 35th percentile of AI maturity for its sector and stage. Most companies at this funding stage in MLOps/AI Infrastructure are at score 2-3. NexusAI is at the lower end of score 2.",
-    "gap_from_top_quartile": "1 full point on 0-3 scale"
-  },
+  "gap_findings": [
+    {
+      "gap_name": "Dedicated AI leadership",
+      "practice": "Dedicated AI/ML leadership at executive or VP level",
+      "business_implication": "Peers are formalizing AI ownership earlier, which usually speeds platform and hiring decisions.",
+      "confidence": 0.88,
+      "evidence_fields": [
+        {
+          "competitor_name": "Gradient Systems",
+          "evidence": "Recent engineering leadership hire: Head of AI",
+          "source_url": "https://gradient-systems.example/team"
+        },
+        {
+          "competitor_name": "Synapse Data",
+          "evidence": "Recent engineering leadership hire: VP Data",
+          "source_url": "https://synapse-data.example/team"
+        },
+        {
+          "competitor_name": "Apex ML",
+          "evidence": "Recent engineering leadership hire: VP Data",
+          "source_url": "https://apex-ml.example/team"
+        },
+        {
+          "competitor_name": "Vertex Inference",
+          "evidence": "Recent engineering leadership hire: Head of ML Platform",
+          "source_url": "https://vertex-inference.example/team"
+        }
+      ]
+    },
+    {
+      "gap_name": "Public evaluation discipline",
+      "practice": "Structured model evaluation or public evidence of eval tooling",
+      "business_implication": "Peers signal stronger production AI discipline when they show evaluation workflows or related tooling.",
+      "confidence": 0.74,
+      "evidence_fields": [
+        {
+          "competitor_name": "Gradient Systems",
+          "evidence": "GitHub URL on record: https://github.com/gradient-systems",
+          "source_url": "https://github.com/gradient-systems"
+        },
+        {
+          "competitor_name": "Synapse Data",
+          "evidence": "GitHub URL on record: https://github.com/synapse-data",
+          "source_url": "https://github.com/synapse-data"
+        },
+        {
+          "competitor_name": "Apex ML",
+          "evidence": "GitHub URL on record: https://github.com/apex-ml",
+          "source_url": "https://github.com/apex-ml"
+        },
+        {
+          "competitor_name": "Vertex Inference",
+          "evidence": "GitHub URL on record: https://github.com/vertex-inference",
+          "source_url": "https://github.com/vertex-inference"
+        }
+      ]
+    },
+    {
+      "gap_name": "Production data and ML platform stack",
+      "practice": "Publicly visible data platform or ML platform operating practices",
+      "business_implication": "Peers are signaling more mature data and platform foundations for AI delivery.",
+      "confidence": 0.83,
+      "evidence_fields": [
+        {
+          "competitor_name": "Gradient Systems",
+          "evidence": "Detected: Python, Kubernetes, Ray",
+          "source_url": "https://gradient-systems.example"
+        },
+        {
+          "competitor_name": "Synapse Data",
+          "evidence": "Detected: Python, dbt, Snowflake",
+          "source_url": "https://synapse-data.example"
+        },
+        {
+          "competitor_name": "Apex ML",
+          "evidence": "Detected: Python, Ray, dbt",
+          "source_url": "https://apex-ml.example"
+        },
+        {
+          "competitor_name": "Vertex Inference",
+          "evidence": "Detected: Python, Kubernetes, Ray",
+          "source_url": "https://vertex-inference.example"
+        }
+      ]
+    }
+  ],
   "identified_gaps": [
     {
-      "gap_id": "gap_001",
-      "gap_name": "No Named AI/ML Leadership",
-      "gap_description": "Top-quartile peers at NexusAI's stage and funding level have a dedicated Head of AI, VP Data, or equivalent on the team page. NexusAI has the CTO covering this role, which is typical at Series A but uncommon for a post-Series B company in AI infrastructure.",
-      "evidence_in_top_quartile": [
-        "Gradient Systems: Head of AI (Dr. Sarah Chen, ex-OpenAI)",
-        "Synapse Data: Head of Data Platform hired at 40-person stage",
-        "Apex ML: VP Data hired Q3 2025 (Series B, 45 people at the time)"
-      ],
-      "evidence_absent_in_prospect": "No Head of AI, VP Data, or Chief Scientist on NexusAI public team page or LinkedIn (checked 2026-04-22)",
-      "confidence": 0.91,
-      "confidence_tier": "high",
-      "business_implication": "Without dedicated AI leadership, ML engineers lack technical direction. Scaling from 4 to 8+ AI engineers without a VP/Head of AI is a known risk — it's one of the primary reasons companies bring in an external team for a structured ramp-up.",
-      "tenacious_angle": "Tenacious can supply a senior ML lead to anchor the team while NexusAI recruits permanent leadership — a time-boxed Segment 4 consulting engagement that transitions to managed outsourcing."
+      "gap_name": "Dedicated AI leadership",
+      "practice": "Dedicated AI/ML leadership at executive or VP level",
+      "business_implication": "Peers are formalizing AI ownership earlier, which usually speeds platform and hiring decisions.",
+      "confidence": 0.88,
+      "evidence_fields": [
+        {
+          "competitor_name": "Gradient Systems",
+          "evidence": "Recent engineering leadership hire: Head of AI",
+          "source_url": "https://gradient-systems.example/team"
+        },
+        {
+          "competitor_name": "Synapse Data",
+          "evidence": "Recent engineering leadership hire: VP Data",
+          "source_url": "https://synapse-data.example/team"
+        },
+        {
+          "competitor_name": "Apex ML",
+          "evidence": "Recent engineering leadership hire: VP Data",
+          "source_url": "https://apex-ml.example/team"
+        },
+        {
+          "competitor_name": "Vertex Inference",
+          "evidence": "Recent engineering leadership hire: Head of ML Platform",
+          "source_url": "https://vertex-inference.example/team"
+        }
+      ]
     },
     {
-      "gap_id": "gap_002",
-      "gap_name": "No Public Model Evaluation Framework",
-      "gap_description": "Top-quartile MLOps companies at this stage have published or open-sourced their model evaluation harness. NexusAI's GitHub shows inference optimization work but no structured eval pipeline is publicly visible.",
-      "evidence_in_top_quartile": [
-        "Apex ML: structured LLM evaluation suite public on GitHub (apexml/llm-eval-harness)",
-        "Gradient Systems: NeurIPS 2025 workshop paper on evaluation methodology",
-        "Prism Data: AI governance framework with published eval process (blog.prismdata.ai, 2025)"
-      ],
-      "evidence_absent_in_prospect": "No public eval harness or published eval methodology on NexusAI GitHub or blog as of April 2026",
+      "gap_name": "Public evaluation discipline",
+      "practice": "Structured model evaluation or public evidence of eval tooling",
+      "business_implication": "Peers signal stronger production AI discipline when they show evaluation workflows or related tooling.",
       "confidence": 0.74,
-      "confidence_tier": "medium",
-      "confidence_note": "Absence of public evidence is not proof of absence. NexusAI may have internal eval processes not published. Language should frame as a question: 'Most teams at this stage have built out their eval harness — is that something you're working through?'",
-      "business_implication": "Without a standardized eval framework, scaling the ML team increases deployment risk. Inference optimization without structured evals risks undetected regressions.",
-      "tenacious_angle": "Tenacious has implemented eval harnesses for three Series B-stage AI companies (per case studies). This is a Segment 4 project consulting entry point."
+      "evidence_fields": [
+        {
+          "competitor_name": "Gradient Systems",
+          "evidence": "GitHub URL on record: https://github.com/gradient-systems",
+          "source_url": "https://github.com/gradient-systems"
+        },
+        {
+          "competitor_name": "Synapse Data",
+          "evidence": "GitHub URL on record: https://github.com/synapse-data",
+          "source_url": "https://github.com/synapse-data"
+        },
+        {
+          "competitor_name": "Apex ML",
+          "evidence": "GitHub URL on record: https://github.com/apex-ml",
+          "source_url": "https://github.com/apex-ml"
+        },
+        {
+          "competitor_name": "Vertex Inference",
+          "evidence": "GitHub URL on record: https://github.com/vertex-inference",
+          "source_url": "https://github.com/vertex-inference"
+        }
+      ]
     },
     {
-      "gap_id": "gap_003",
-      "gap_name": "Data Platform Engineer Hiring Bottleneck",
-      "gap_description": "NexusAI has one open Data Platform Engineer role that has been posted for 47 days with no apparent hire. At the same stage, Synapse Data hired a Head of Data Platform at 40 people and Apex ML has a data contracts layer in production.",
-      "evidence_in_top_quartile": [
-        "Synapse Data: Fully automated data quality pipeline open-sourced, real-time feature store in production",
-        "Apex ML: Data contracts enforced at ingestion layer, not just aspirational"
-      ],
-      "evidence_absent_in_prospect": "Data Platform Engineer role posted on Wellfound for 47 days (as of 2026-04-22). Job description mentions 'helping us build our data ingestion layer' — suggesting it's not yet built.",
-      "confidence": 0.82,
-      "confidence_tier": "high",
-      "business_implication": "A Series B AI infrastructure company without a production data ingestion layer is operationally behind peers. This is a specific, verifiable gap the prospect can confirm.",
-      "tenacious_angle": "Tenacious has 3 data engineers available on bench with Python/dbt/Snowflake experience. This is the most concrete, immediately actionable bench-to-brief match."
+      "gap_name": "Production data and ML platform stack",
+      "practice": "Publicly visible data platform or ML platform operating practices",
+      "business_implication": "Peers are signaling more mature data and platform foundations for AI delivery.",
+      "confidence": 0.83,
+      "evidence_fields": [
+        {
+          "competitor_name": "Gradient Systems",
+          "evidence": "Detected: Python, Kubernetes, Ray",
+          "source_url": "https://gradient-systems.example"
+        },
+        {
+          "competitor_name": "Synapse Data",
+          "evidence": "Detected: Python, dbt, Snowflake",
+          "source_url": "https://synapse-data.example"
+        },
+        {
+          "competitor_name": "Apex ML",
+          "evidence": "Detected: Python, Ray, dbt",
+          "source_url": "https://apex-ml.example"
+        },
+        {
+          "competitor_name": "Vertex Inference",
+          "evidence": "Detected: Python, Kubernetes, Ray",
+          "source_url": "https://vertex-inference.example"
+        }
+      ]
     }
   ],
-  "competitor_gap_outreach_hook": "Three companies in NexusAI's sector at your exact stage — post-Series B, 40-70 people, building AI infrastructure — have already established a dedicated data platform and production eval framework. The pattern is consistent: teams that don't build these before hitting 50 engineers spend the next 12 months retrofitting. The specific gap I can point to from your public signals is the data ingestion layer and the absence of a named AI/ML leader. Worth a 30-minute conversation?",
-  "framing_guidance": {
-    "tone": "Research-findings framing, not vendor-pitch framing. Present as 'here's what we're seeing in your sector' not 'here's what you're missing'.",
-    "confidence_calibration": "Gap 001 (no AI leadership) is high-confidence — assert. Gap 002 (no eval framework) is medium-confidence — ask. Gap 003 (data platform) is high-confidence — assert.",
-    "anti_patterns": [
-      "Do NOT say 'your competitors are beating you' — condescending to a CTO",
-      "Do NOT assert Gap 002 as fact — CTO may have internal eval work not yet public",
-      "Do NOT reference specific competitor company names in outreach — brand risk"
-    ]
-  }
+  "analysis_note": "Top-quartile comparison from committed public-signal catalog using the same 6-signal AI maturity framework applied to the prospect",
+  "generated_at": "2026-04-24T16:35:00+00:00"
 }

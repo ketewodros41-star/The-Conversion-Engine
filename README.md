@@ -4,6 +4,14 @@
 
 ---
 
+## Inheritor Docs
+
+- `SETUP.md` - explicit prerequisites, verified versions, config variables, and run order
+- `DIRECTORY_INDEX.md` - top-level folder map for the whole repository
+- `HANDOFF_NOTES.md` - known limitations and next steps a successor will hit
+
+---
+
 ## ⚠️ IMPORTANT: Kill Switch
 
 **`LIVE_MODE` defaults to `false`.** All outbound email and SMS routes to the staff sink unless you explicitly set `LIVE_MODE=true` in your `.env` file. Do NOT set `LIVE_MODE=true` without Tenacious executive team approval.
@@ -80,11 +88,13 @@ STAFF_SINK_NUMBER=+254700000000
   outreach_generator.py     — Signal-grounded email generator (SCAP v2)
   email_handler.py          — Resend integration (primary channel)
   sms_handler.py            — Africa's Talking integration (secondary channel)
-  hubspot_crm.py            — HubSpot MCP integration
+  hubspot_crm.py            — HubSpot client (MCP primary, REST fallback)
   calcom_booking.py         — Cal.com calendar booking
   requirements.txt          — Python dependencies
   hiring_signal_brief.json  — Example enriched brief (NexusAI Labs synthetic)
+  hiring_signal_brief.schema.json — JSON schema for hiring-signal brief
   competitor_gap_brief.json — Example competitor gap analysis
+  competitor_gap_brief.schema.json — JSON schema for competitor-gap brief
 
 /probes/
   probe_library.md          — 35 structured adversarial probes
@@ -94,7 +104,7 @@ STAFF_SINK_NUMBER=+254700000000
 /method/
   method.md                 — SCAP v2 mechanism design, hyperparameters, ablations
   ablation_results.json     — pass@1, CI, cost for all 4 variants + GEPA baseline
-  held_out_traces.jsonl     — Raw traces from all conditions on sealed held-out slice
+  held_out_traces.jsonl     — Archived trace artifact from an earlier evaluation pass
 
 /report/
   memo.md                   — 2-page executive memo (memo.pdf equivalent)
@@ -164,8 +174,8 @@ STAFF_SINK_NUMBER=+254700000000          # Required: receives all SMS in sandbox
 
 # === CRM ===
 HUBSPOT_ACCESS_TOKEN=pat-na1-...         # HubSpot Developer Sandbox private app
-HUBSPOT_TRANSPORT=mcp                    # Required: agent writes contacts through HubSpot MCP
-HUBSPOT_MCP_URL=http://localhost:8080/mcp # Required MCP gateway endpoint
+HUBSPOT_TRANSPORT=mcp                    # Preferred: MCP transport, falls back to REST if unavailable
+HUBSPOT_MCP_URL=http://localhost:8080/mcp # Optional MCP gateway endpoint
 
 # === CALENDAR ===
 CALCOM_URL=http://localhost:3000
@@ -212,7 +222,7 @@ python tau2_runner.py \
   --output trace_log.jsonl
 ```
 
-### Run SCAP v2 Mechanism (held-out evaluation)
+### Run SCAP v2 Mechanism (current documented evaluation path)
 
 ```bash
 cd eval/
@@ -220,9 +230,9 @@ python tau2_runner.py \
   --model claude-sonnet-4-6 \
   --temperature 0.0 \
   --mechanism scap_v2 \
-  --slice held_out \
-  --trials 5 \
-  --output ../method/held_out_traces.jsonl
+  --slice dev \
+  --trials 1 \
+  --output trace_log.jsonl
 ```
 
 ### Validate Evidence Graph
@@ -267,8 +277,8 @@ Conversation state is keyed by `(company_id, contact_email)` — never shared ac
 All results in the final memo and evidence_graph.json are reproducible:
 
 1. **Baseline** (CG-002): `python eval/tau2_runner.py --mechanism none --slice dev`
-2. **SCAP v2** (CG-001): `python eval/tau2_runner.py --mechanism scap_v2 --slice held_out`
-3. **Delta A** (CG-003): `python eval/compute_delta.py method/held_out_traces.jsonl`
+2. **SCAP v2** (CG-001): `python eval/tau2_runner.py --mechanism scap_v2 --slice dev`
+3. **Delta A** (CG-003): read `eval/score_log.json` delta_analysis for the current documented comparison
 4. **Evidence graph** (all claims): `python report/validate_evidence_graph.py report/evidence_graph.json`
 
 ---

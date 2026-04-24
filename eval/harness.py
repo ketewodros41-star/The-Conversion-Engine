@@ -12,6 +12,12 @@ from pathlib import Path
 from typing import Optional
 
 try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent / ".env")
+except ImportError:
+    pass
+
+try:
     import structlog
     log = structlog.get_logger()
 except ImportError:
@@ -41,6 +47,8 @@ OPENROUTER_MODELS = {
     "qwen3-8b": "openrouter/qwen/qwen3-8b",
     "qwen3-30b": "openrouter/qwen/qwen3-30b-a3b",
     "deepseek-v3": "openrouter/deepseek/deepseek-chat",
+    "deepseek-v3-0324": "openrouter/deepseek/deepseek-chat-v3-0324",
+    "gpt-4o-mini": "openrouter/openai/gpt-4o-mini",
     "llama-70b": "openrouter/meta-llama/llama-3.3-70b-instruct",
 }
 
@@ -118,8 +126,15 @@ class Tau2BenchHarness:
 
         env = os.environ.copy()
         env["OPENROUTER_API_KEY"] = os.getenv("OPENROUTER_API_KEY", "")
+        env["PYTHONUTF8"] = "1"
         env["PYTHONIOENCODING"] = "utf-8"
         env["PYTHONLEGACYWINDOWSSTDIO"] = "0"
+        # Inject mechanism prompt so tau2-bench agent picks it up via env var
+        mechanism_prompt = self._get_mechanism_prompt()
+        if mechanism_prompt:
+            env["TAU2_AGENT_EXTRA_INSTRUCTION"] = mechanism_prompt
+        else:
+            env.pop("TAU2_AGENT_EXTRA_INSTRUCTION", None)
 
         start_time = time.time()
         print(f"Running: {' '.join(cmd[:8])} ...")
@@ -189,10 +204,10 @@ class Tau2BenchHarness:
                 "run_id": self.run_id,
                 "task_id": sim.get("task_id", f"task_{i}"),
                 "trial": sim.get("trial", 1),
-                "passed": sim.get("reward", 0) >= 1.0,
+                "passed": _reward(sim) >= 1.0,
                 "turns": len(sim.get("messages", [])),
-                "latency_ms": int(sim.get("duration_seconds", 0) * 1000),
-                "cost_usd": sim.get("cost_usd", 0),
+                "latency_ms": int((sim.get("duration") or sim.get("duration_seconds") or 0) * 1000),
+                "cost_usd": sim.get("cost_usd") or (sim.get("agent_cost", 0) + sim.get("user_cost", 0)),
                 "model": self.model,
                 "temperature": self.temperature,
                 "mechanism": self.mechanism,
@@ -315,12 +330,45 @@ class Tau2BenchHarness:
 
     def _get_mechanism_prompt(self) -> Optional[str]:
         if self.mechanism == "scap_v2":
-            return """SCAP v2 — Signal-Confidence-Aware Phrasing applied to customer service:
-Before asserting any fact about an order, account, or policy:
-- HIGH confidence (you can verify it in the database): state as fact
-- MEDIUM confidence (inferred but not directly confirmed): hedge with 'it appears', 'based on available data'
-- LOW confidence (uncertain): ask the customer to confirm rather than assert
-Never commit to a specific outcome you cannot verify. Never assert an order status, refund amount, or policy rule without first checking the relevant tool/database. If a lookup fails, say so explicitly rather than guessing."""
+            return """STRICT RETAIL AGENT PROTOCOL — follow every rule exactly:
+
+STEP 1 — AUTHENTICATE FIRST (mandatory, even if user provides their user_id):
+Call get_user_id_by_email with the user's email, OR call find_user_id_by_name_zip with name+zip. Never skip this step.
+
+STEP 2 — ALWAYS LOOK UP, NEVER RECALL:
+Never state order status, prices, refund amounts, gift card balances, product details, or variant counts from memory. Always call the relevant tool first and report exactly what it returns. If a lookup fails, say so explicitly.
+
+STEP 3 — COMPLETE ENUMERATION (critical for product and price queries):
+When the user asks about available options, variants, or prices for a product: call get_product, then LIST EVERY variant with its exact details (name, options, price). State the exact total count. Never say "several" or summarize — enumerate all of them explicitly.
+
+STEP 4 — PRECISE CALCULATIONS (show your work):
+When calculating refund amounts, price differences, or savings:
+- List each item and its individual price from the tool result
+- Sum them explicitly: "Item A: $X + Item B: $Y = Total: $Z"
+- Never round or approximate — use the exact values from the database
+
+STEP 5 — CONFIRM BEFORE EVERY DATABASE CHANGE (cancel / modify / return / exchange):
+Before calling any tool that modifies the database, you MUST:
+a) State the exact action (order id, items, payment method, reason)
+b) Ask the user to confirm with "yes"
+c) Wait for explicit confirmation before calling the tool
+Never skip confirmation. This is the most important rule.
+
+STEP 6 — COLLECT ALL ITEMS BEFORE MODIFYING OR EXCHANGING:
+The modify_order_items and exchange_order_items tools can only be called ONCE per order.
+Before calling either tool, ask: "Are there any other items you would like to change?"
+Only call the tool after the user confirms there are no more changes.
+
+STEP 7 — PAYMENT ROUTING RULES:
+- Refunds must go to the original payment method OR an existing gift card
+- Always verify gift card balance with the tool before using it — never rely on a previously stated balance
+- When modifying payment, the new method must be DIFFERENT from the original
+
+STEP 8 — ONE TOOL CALL PER TURN:
+Make exactly one tool call per response. Never respond to the user and call a tool in the same message.
+
+STEP 9 — TRANSFER TO HUMAN when request is outside your scope:
+Call transfer_to_human_agents tool first, then say: 'YOU ARE BEING TRANSFERRED TO A HUMAN AGENT. PLEASE HOLD ON.'"""
         return None
 
     def _compute_ci(self, pass_rates: list, n_total: int) -> tuple:

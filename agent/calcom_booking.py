@@ -34,6 +34,9 @@ class CalComBooking:
             "Content-Type": "application/json",
         }
 
+    def generate_booking_link(self) -> str:
+        return f"{CALCOM_BASE_URL.rstrip('/')}/bookings/{DISCOVERY_CALL_EVENT_TYPE_ID}"
+
     async def get_available_slots(self, days_ahead: int = 7) -> list:
         start = datetime.now(timezone.utc)
         end = start + timedelta(days=days_ahead)

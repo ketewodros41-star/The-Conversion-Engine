@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "hiring_signal_brief",
+  "type": "object",
+  "required": ["prospect", "signals", "confidence_summary", "generated_at"],
+  "properties": {
+    "prospect": {
+      "type": "object",
+      "required": ["company_name", "crunchbase_id", "industry", "employee_count"]
+    },
+    "signals": {
+      "type": "object",
+      "required": [
+        "funding_event",
+        "job_post_velocity",
+        "layoff_event",
+        "leadership_change",
+        "tech_stack",
+        "github_activity",
+        "exec_commentary",
+        "strategic_communications",
+        "ai_maturity"
+      ]
+    },
+    "confidence_summary": {
+      "type": "object",
+      "required": ["overall_confidence", "signal_confidences"]
+    },
+    "generated_at": {
+      "type": "string"
+    }
+  }
+}

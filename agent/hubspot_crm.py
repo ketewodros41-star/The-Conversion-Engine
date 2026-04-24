@@ -14,12 +14,14 @@ log = structlog.get_logger()
 
 
 class HubSpotCRM:
-    """HubSpot MCP integration for Tenacious lead management."""
+    """HubSpot client with MCP primary transport and REST fallback."""
 
     BASE_URL = "https://api.hubapi.com"
 
     def __init__(self):
         self.access_token = os.getenv("HUBSPOT_ACCESS_TOKEN")
+        self.transport = os.getenv("HUBSPOT_TRANSPORT", "rest").lower()
+        self.mcp_url = os.getenv("HUBSPOT_MCP_URL", "http://localhost:8080/mcp")
         if not self.access_token:
             log.warning("hubspot_token_missing", msg="Set HUBSPOT_ACCESS_TOKEN in .env")
 
@@ -36,6 +38,11 @@ class HubSpotCRM:
         return {"id": contact.get("id"), **properties}
 
     async def _request(self, method: str, path: str, *, json: Optional[dict] = None) -> dict:
+        if self.transport == "mcp":
+            return await self._request_via_mcp(method, path, json=json)
+        return await self._request_via_rest(method, path, json=json)
+
+    async def _request_via_rest(self, method: str, path: str, *, json: Optional[dict] = None) -> dict:
         async with httpx.AsyncClient() as client:
             resp = await client.request(
                 method,
@@ -45,6 +52,28 @@ class HubSpotCRM:
             )
             resp.raise_for_status()
             return resp.json() if resp.content else {}
+
+    async def _request_via_mcp(self, method: str, path: str, *, json: Optional[dict] = None) -> dict:
+        payload = {
+            "tool": "hubspot.http_request",
+            "arguments": {
+                "method": method,
+                "path": path,
+                "headers": self._headers(),
+                "json": json or {},
+            },
+        }
+        async with httpx.AsyncClient() as client:
+            try:
+                resp = await client.post(self.mcp_url, json=payload)
+                resp.raise_for_status()
+                body = resp.json() if resp.content else {}
+                if isinstance(body, dict) and "result" in body:
+                    return body["result"] or {}
+                return body
+            except Exception as exc:
+                log.warning("hubspot_mcp_request_failed_falling_back_to_rest", error=str(exc), path=path)
+                return await self._request_via_rest(method, path, json=json)
 
     async def upsert_contact(self, email: str, properties: dict) -> dict:
         search_resp = await self._request(

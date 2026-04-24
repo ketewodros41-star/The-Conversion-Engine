@@ -180,11 +180,17 @@ Format as JSON: {{"subject": "...", "body": "...", "word_count": N, "confidence_
         return "\n".join(lines)
 
     def _get_best_gap(self, competitor_brief: dict) -> str:
-        gaps = competitor_brief.get("identified_gaps", [])
-        high_conf_gaps = [g for g in gaps if g.get("confidence", 0) >= 0.80]
+        gaps = competitor_brief.get("gap_findings") or competitor_brief.get("identified_gaps", [])
+        normalized = []
+        for gap in gaps:
+            confidence = gap.get("confidence", 0)
+            if isinstance(confidence, str):
+                confidence = {"high": 0.85, "medium": 0.70, "low": 0.50}.get(confidence.lower(), 0.0)
+            normalized.append({**gap, "confidence": confidence})
+        high_conf_gaps = [g for g in normalized if g.get("confidence", 0) >= 0.80]
         if high_conf_gaps:
             g = high_conf_gaps[0]
-            return f"{g['gap_name']}: {g['business_implication']}"
+            return f"{g.get('gap_name', g.get('practice', 'Gap'))}: {g.get('business_implication', 'Use as a research finding, not a verdict.')}"
         return "No high-confidence gap identified — do not assert competitor comparison"
 
     def classify_reply_intent(self, email_body: str) -> str:
@@ -199,7 +205,13 @@ Format as JSON: {{"subject": "...", "body": "...", "word_count": N, "confidence_
             return "qualify"
         return "qualify"  # Default: continue qualification
 
-    def generate_scheduling_reply(self, contact: dict, slots: list, channel: str) -> dict:
+    def generate_scheduling_reply(
+        self,
+        contact: dict,
+        slots: list,
+        channel: str,
+        booking_link: Optional[str] = None,
+    ) -> dict:
         """Generate scheduling reply for warm lead who wants to book a call."""
         slot_list = "\n".join([f"• {s['display']}" for s in slots[:3]])
         name = contact.get("firstname", "there")
@@ -211,12 +223,16 @@ Great — happy to connect. A few times that work for a 30-minute call:
 
 {slot_list}
 
-Any of these work? Or reply with your preferred time and I'll find a slot.
+Any of these work? Or reply with your preferred time and I'll find a slot.{f" If easier, you can also use this booking link: {booking_link}" if booking_link else ""}
 
 —
 Tenacious Consulting and Outsourcing
 [DRAFT]""",
-            "sms_follow_up": f"Quick follow-up on scheduling — do any of these work? {slots[0]['display'] if slots else 'Let me know your availability'}"
+            "sms_follow_up": (
+                f"Quick follow-up on scheduling — do any of these work? "
+                f"{slots[0]['display'] if slots else 'Let me know your availability'}"
+                f"{f' Or use {booking_link}' if booking_link else ''}"
+            )
         }
 
     def generate_qualification_reply(self, contact: dict, email_body: str) -> dict:

@@ -1,5 +1,5 @@
 """
-Tenacious Conversion Engine — τ²-Bench Runner CLI
+Tenacious Conversion Engine - Tau2-Bench Runner CLI
 Usage: python tau2_runner.py --model claude-sonnet-4-6 --mechanism scap_v2 --slice held_out --trials 5
 """
 
@@ -7,6 +7,13 @@ import argparse
 import json
 import sys
 from pathlib import Path
+
+# Load .env before anything else so OPENROUTER_API_KEY is available
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent / ".env")
+except ImportError:
+    pass
 
 # Dev-slice task IDs (30 tasks)
 DEV_SLICE = [f"RETAIL-{str(i).zfill(3)}" for i in range(1, 31)]
@@ -19,7 +26,7 @@ VALID_SLICES = ["dev", "held_out"]
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run τ²-Bench evaluation")
+    parser = argparse.ArgumentParser(description="Run Tau2-Bench evaluation")
     parser.add_argument("--model", default="gemini-2.0-flash-free",
                         help="LLM model alias: gemini-2.0-flash-free (free), gemini-2.0-flash, deepseek-v3, qwen3-8b, or full litellm name")
     parser.add_argument("--temperature", type=float, default=0.0,
@@ -46,12 +53,12 @@ def main():
     else:
         task_ids = HELD_OUT_SLICE
 
-    print(f"τ²-Bench Evaluation")
+    print(f"Tau2-Bench Evaluation")
     print(f"Model: {args.model} | Temperature: {args.temperature}")
     print(f"Mechanism: {args.mechanism} | Slice: {args.slice}")
     print(f"Tasks: {len(task_ids)} | Trials: {args.trials}")
     print(f"Total evaluations: {len(task_ids) * args.trials}")
-    print("─" * 50)
+    print("-" * 50)
 
     # Import and run harness
     sys.path.insert(0, str(Path(__file__).parent.parent))

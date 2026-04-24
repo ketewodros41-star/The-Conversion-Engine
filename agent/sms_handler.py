@@ -127,10 +127,17 @@ class SMSHandler:
                 to_number=contact.get("phone", ""),
                 message=(
                     "No problem. Here are a few more options:\n"
-                    f"{slot_options}\nWhich works?"
+                    f"{slot_options}\nWhich works? Or use {calendar.generate_booking_link()}"
                 ),
             )
             return {"booked": False, "next_action": "waiting_for_slot_selection"}
+
+        if "link" in msg_lower or "calendar" in msg_lower:
+            await self.send_scheduling_sms(
+                to_number=contact.get("phone", ""),
+                message=f"You can book directly here: {calendar.generate_booking_link()}",
+            )
+            return {"booked": False, "next_action": "booking_link_sent"}
 
         return {"booked": False, "next_action": "unrecognized_intent"}
 

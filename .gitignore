@@ -20,3 +20,10 @@ playwright-browsers/
 # Report outputs
 report/interim_report.pdf
 report/*.pdf
+
+# Tenacious confidential seed data — never commit
+seed/
+tenacious_sales_data (1)/
+
+# Sensitive sales materials
+draft tenacious sales materials template.md

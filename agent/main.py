@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from calcom_booking import CalComBooking
+from channel_policy import ChannelPolicy
 from email_handler import EmailHandler
 from enrichment import EnrichmentPipeline
 from event_bus import EventBus
@@ -38,6 +39,7 @@ crm = HubSpotCRM()
 calendar = CalComBooking(event_bus=event_bus)
 outreach_gen = OutreachGenerator()
 icp_classifier = ICPClassifier()
+channel_policy = ChannelPolicy()
 
 
 class ProspectRequest(BaseModel):
@@ -124,6 +126,7 @@ async def process_prospect(prospect: ProspectRequest) -> dict:
     competitor_brief = await enrichment.build_competitor_gap_brief(
         crunchbase_id=prospect.crunchbase_id,
         sector=hiring_brief["prospect"]["industry"],
+        prospect_ai_score=hiring_brief["signals"]["ai_maturity"]["score"],
     )
 
     classification = icp_classifier.classify(hiring_brief)
@@ -178,6 +181,16 @@ async def process_prospect(prospect: ProspectRequest) -> dict:
             "is_synthetic": str(prospect.is_synthetic).lower(),
         },
     )
+    await crm.log_activity(
+        contact_id=hubspot_contact["id"],
+        activity_type="outbound_email_sent",
+        details={
+            "message_id": email_result.get("message_id", ""),
+            "variant": email_variant,
+            "ai_maturity_score": hiring_brief["signals"]["ai_maturity"]["score"],
+            "sent_at": start_time.isoformat(),
+        },
+    )
 
     elapsed_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
     log.info(
@@ -220,7 +233,12 @@ async def handle_inbound_email(webhook: InboundEmailWebhook):
         )
         contact["warm_lead"] = "true"
         slots = await calendar.get_available_slots(days_ahead=7)
-        response = outreach_gen.generate_scheduling_reply(contact=contact, slots=slots, channel="email")
+        response = outreach_gen.generate_scheduling_reply(
+            contact=contact,
+            slots=slots,
+            channel="email",
+            booking_link=calendar.generate_booking_link(),
+        )
         await email_handler.send_reply(
             to_email=webhook.from_email,
             subject=f"Re: {webhook.subject}",
@@ -228,11 +246,23 @@ async def handle_inbound_email(webhook: InboundEmailWebhook):
             in_reply_to=webhook.message_id,
             metadata={"is_draft": True, "intent": "scheduling"},
         )
-        if str(contact.get("sms_consent", "")).lower() == "true" and contact.get("phone"):
+        sms_decision = channel_policy.can_offer_sms_follow_up(contact, reply_intent)
+        if sms_decision.allowed:
             await sms_handler.send_scheduling_sms(
                 to_number=contact["phone"],
                 message=response["sms_follow_up"],
             )
+            await crm.log_activity(
+                contact_id=contact["id"],
+                activity_type="sms_follow_up_sent",
+                details={
+                    "reason": sms_decision.reason,
+                    "booking_link": calendar.generate_booking_link(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+        else:
+            log.info("sms_follow_up_skipped", reason=sms_decision.reason, email=webhook.from_email)
     elif reply_intent == "qualify":
         response = outreach_gen.generate_qualification_reply(contact=contact, email_body=webhook.body)
         await email_handler.send_reply(
@@ -278,8 +308,9 @@ async def handle_inbound_sms(webhook: InboundSMSWebhook):
         return {"status": "stopped"}
 
     contact = await crm.find_contact_by_phone(webhook.from_number)
-    if not contact or str(contact.get("warm_lead", "")).lower() != "true":
-        log.warning("unexpected_cold_sms", number=webhook.from_number)
+    sms_decision = channel_policy.can_accept_inbound_sms(contact)
+    if not sms_decision.allowed:
+        log.warning("unexpected_cold_sms", number=webhook.from_number, reason=sms_decision.reason)
         return {"status": "ignored_cold_contact"}
 
     booking_result = await sms_handler.handle_scheduling_message(
