@@ -50,6 +50,9 @@ class HubSpotCRM:
                 headers=self._headers(),
                 json=json,
             )
+            if not resp.is_success:
+                log.error("hubspot_api_error", method=method, path=path,
+                          status=resp.status_code, body=resp.text[:500])
             resp.raise_for_status()
             return resp.json() if resp.content else {}
 
@@ -75,11 +78,12 @@ class HubSpotCRM:
                 log.warning("hubspot_mcp_request_failed_falling_back_to_rest", error=str(exc), path=path)
                 return await self._request_via_rest(method, path, json=json)
 
-    # Standard HubSpot properties that always exist — no schema scope needed.
+    # Standard HubSpot contact properties — no schema scope needed.
+    # Note: 'description' is a company property, NOT a valid contact property.
     _STANDARD_PROPS = {
         "firstname", "lastname", "email", "phone", "jobtitle", "company",
         "website", "city", "state", "country", "industry", "annualrevenue",
-        "numberofemployees", "hs_lead_status", "lifecyclestage", "description",
+        "numberofemployees", "hs_lead_status", "lifecyclestage",
     }
 
     def _split_props(self, properties: dict) -> tuple[dict, dict]:
@@ -112,8 +116,6 @@ class HubSpotCRM:
         now_ts = datetime.now(timezone.utc).isoformat()
 
         standard_props, custom_props = self._split_props(properties)
-        # Embed enrichment summary in description so it's visible in the contact record.
-        standard_props["description"] = self._enrichment_note(custom_props, now_ts)
 
         if existing:
             contact_id = existing[0]["id"]
