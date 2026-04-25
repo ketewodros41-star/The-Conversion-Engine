@@ -6,7 +6,7 @@ Preserves Tenacious tone from style_guide.md.
 
 import os
 from typing import Optional
-import anthropic
+from openai import OpenAI
 import structlog
 
 log = structlog.get_logger()
@@ -53,7 +53,10 @@ class OutreachGenerator:
     """Generates personalized, signal-grounded outbound emails for Tenacious ICP segments."""
 
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        self.client = OpenAI(
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+            base_url="https://openrouter.ai/api/v1",
+        )
 
     def _build_system_prompt(self) -> str:
         return f"""You are writing outbound email for Tenacious Consulting and Outsourcing.
@@ -89,15 +92,14 @@ Rules:
         # Build context from briefs
         context = self._build_email_context(prospect, signals, competitor_brief, segment)
 
-        # Use Claude to generate the email
+        # Use GPT-4o-mini via OpenRouter to generate the email
         try:
-            response = self.client.messages.create(
-                model="claude-sonnet-4-6",
+            response = self.client.chat.completions.create(
+                model="openai/gpt-4o-mini",
                 max_tokens=400,
-                system=self._build_system_prompt(),
-                messages=[{
-                    "role": "user",
-                    "content": f"""Generate a signal-grounded outbound email for this prospect.
+                messages=[
+                    {"role": "system", "content": self._build_system_prompt()},
+                    {"role": "user", "content": f"""Generate a signal-grounded outbound email for this prospect.
 
 PROSPECT: {prospect['company_name']}
 CONTACT: {prospect['contact_name']}, {prospect['contact_title']}
@@ -115,12 +117,12 @@ Generate:
 2. Email body (under 180 words)
 3. Mark confidence-limited claims appropriately
 
-Format as JSON: {{"subject": "...", "body": "...", "word_count": N, "confidence_notes": [...]}}"""
-                }]
+Format as JSON: {{"subject": "...", "body": "...", "word_count": N, "confidence_notes": [...]}}"""},
+                ],
             )
 
             import json
-            content = response.content[0].text
+            content = response.choices[0].message.content
             # Parse JSON from response
             start = content.find('{')
             end = content.rfind('}') + 1

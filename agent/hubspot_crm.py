@@ -75,6 +75,29 @@ class HubSpotCRM:
                 log.warning("hubspot_mcp_request_failed_falling_back_to_rest", error=str(exc), path=path)
                 return await self._request_via_rest(method, path, json=json)
 
+    # Standard HubSpot properties that always exist — no schema scope needed.
+    _STANDARD_PROPS = {
+        "firstname", "lastname", "email", "phone", "jobtitle", "company",
+        "website", "city", "state", "country", "industry", "annualrevenue",
+        "numberofemployees", "hs_lead_status", "lifecyclestage", "description",
+    }
+
+    def _split_props(self, properties: dict) -> tuple[dict, dict]:
+        """Split into standard props (safe) and custom props (need schema scope)."""
+        standard = {k: v for k, v in properties.items() if k in self._STANDARD_PROPS}
+        custom = {k: v for k, v in properties.items() if k not in self._STANDARD_PROPS}
+        return standard, custom
+
+    def _enrichment_note(self, properties: dict, extra_timestamp: str) -> str:
+        """Format all enrichment fields as a readable note body."""
+        lines = ["[TENACIOUS ENGINE] enrichment_snapshot"]
+        for k, v in properties.items():
+            if v:
+                lines.append(f"{k}: {v}")
+        lines.append(f"last_enriched_at: {extra_timestamp}")
+        lines.append(f"data_source: tenacious_conversion_engine")
+        return "\n".join(lines)
+
     async def upsert_contact(self, email: str, properties: dict) -> dict:
         search_resp = await self._request(
             "POST",
@@ -86,31 +109,47 @@ class HubSpotCRM:
             },
         )
         existing = search_resp.get("results", [])
+        now_ts = datetime.now(timezone.utc).isoformat()
 
-        enriched_props = {
-            **properties,
-            "last_enriched_at": datetime.now(timezone.utc).isoformat(),
-            "data_source": "tenacious_conversion_engine",
-            "is_draft": "true",
-        }
+        standard_props, custom_props = self._split_props(properties)
+        # Embed enrichment summary in description so it's visible in the contact record.
+        standard_props["description"] = self._enrichment_note(custom_props, now_ts)
 
         if existing:
             contact_id = existing[0]["id"]
             resp = await self._request(
                 "PATCH",
                 f"/crm/v3/objects/contacts/{contact_id}",
-                json={"properties": enriched_props},
+                json={"properties": standard_props},
             )
             log.info("hubspot_contact_updated", contact_id=contact_id, email=email)
-            return self._normalize_contact(resp)
+            contact = self._normalize_contact(resp)
+        else:
+            resp = await self._request(
+                "POST",
+                "/crm/v3/objects/contacts",
+                json={"properties": {"email": email, **standard_props}},
+            )
+            log.info("hubspot_contact_created", email=email)
+            contact = self._normalize_contact(resp)
 
-        resp = await self._request(
-            "POST",
-            "/crm/v3/objects/contacts",
-            json={"properties": {"email": email, **enriched_props}},
-        )
-        log.info("hubspot_contact_created", email=email)
-        return self._normalize_contact(resp)
+        # Try custom props separately — works if schema scope is granted later.
+        if contact and contact.get("id") and custom_props:
+            try:
+                await self._request(
+                    "PATCH",
+                    f"/crm/v3/objects/contacts/{contact['id']}",
+                    json={"properties": {
+                        **custom_props,
+                        "last_enriched_at": now_ts,
+                        "data_source": "tenacious_conversion_engine",
+                    }},
+                )
+                log.info("hubspot_custom_props_written", contact_id=contact["id"])
+            except Exception as exc:
+                log.warning("hubspot_custom_props_skipped", reason=str(exc),
+                            note="Grant CRM schema write scope to the private app")
+        return contact
 
     async def find_contact_by_email(self, email: str) -> Optional[dict]:
         resp = await self._request(
