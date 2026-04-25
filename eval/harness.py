@@ -150,7 +150,7 @@ class Tau2BenchHarness:
             errors="replace",
             env=env,
             cwd=str(Path(__file__).parent.parent / "tau2-bench"),
-            timeout=1200,
+            timeout=3600,
         )
 
         elapsed = time.time() - start_time
