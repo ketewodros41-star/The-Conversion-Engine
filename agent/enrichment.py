@@ -457,41 +457,44 @@ class EnrichmentPipeline:
 
         jobs: list[str] = []
         source_attribution: list[str] = []
-        async with async_playwright() as playwright:
-            browser = await playwright.chromium.launch(headless=True)
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (compatible; TenaciousBot/1.0; +https://tenacious.example.com/bot)"
-            )
-            try:
-                for source in public_sources:
-                    allowed = await self._check_robots_txt(source["domain"], source["path"])
-                    if not allowed:
-                        log.info("robots_txt_blocked_jobs_source", company=company_name, source=source["name"])
-                        continue
-                    page = await context.new_page()
-                    try:
-                        await page.goto(source["url"], timeout=10000)
-                        await page.wait_for_timeout(1500)
-                        job_elements = await page.query_selector_all(source["selector"])
-                        source_jobs = []
-                        for element in job_elements[:20]:
-                            text = (await element.inner_text()).strip()
-                            if text and len(text) < 150:
-                                source_jobs.append(text)
-                        if source_jobs:
-                            jobs.extend(source_jobs)
-                            source_attribution.append(source["url"])
-                    except Exception as exc:
-                        log.debug(
-                            "public_job_scrape_failed",
-                            company=company_name,
-                            source=source["name"],
-                            error=str(exc),
-                        )
-                    finally:
-                        await page.close()
-            finally:
-                await browser.close()
+        try:
+            async with async_playwright() as playwright:
+                browser = await playwright.chromium.launch(headless=True)
+                context = await browser.new_context(
+                    user_agent="Mozilla/5.0 (compatible; TenaciousBot/1.0; +https://tenacious.example.com/bot)"
+                )
+                try:
+                    for source in public_sources:
+                        allowed = await self._check_robots_txt(source["domain"], source["path"])
+                        if not allowed:
+                            log.info("robots_txt_blocked_jobs_source", company=company_name, source=source["name"])
+                            continue
+                        page = await context.new_page()
+                        try:
+                            await page.goto(source["url"], timeout=10000)
+                            await page.wait_for_timeout(1500)
+                            job_elements = await page.query_selector_all(source["selector"])
+                            source_jobs = []
+                            for element in job_elements[:20]:
+                                text = (await element.inner_text()).strip()
+                                if text and len(text) < 150:
+                                    source_jobs.append(text)
+                            if source_jobs:
+                                jobs.extend(source_jobs)
+                                source_attribution.append(source["url"])
+                        except Exception as exc:
+                            log.debug(
+                                "public_job_scrape_failed",
+                                company=company_name,
+                                source=source["name"],
+                                error=str(exc),
+                            )
+                        finally:
+                            await page.close()
+                finally:
+                    await browser.close()
+        except Exception as exc:
+            log.warning("playwright_scrape_failed", error=str(exc))
 
         deduped_jobs = list(dict.fromkeys(jobs))[:20]
         engineering_keywords = [
