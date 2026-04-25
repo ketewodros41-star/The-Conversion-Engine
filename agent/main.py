@@ -348,7 +348,12 @@ async def handle_calcom_booking(webhook: CalComBookingWebhook):
 
 @app.post("/api/process-prospect")
 async def api_process_prospect(prospect: ProspectRequest):
-    return await process_prospect(prospect)
+    try:
+        return await process_prospect(prospect)
+    except Exception as exc:
+        import traceback
+        log.error("process_prospect_unhandled", error=str(exc), tb=traceback.format_exc())
+        raise HTTPException(status_code=500, detail={"error": str(exc), "type": type(exc).__name__})
 
 
 @app.get("/health")
