@@ -113,8 +113,13 @@ class EnrichmentPipeline:
             return {}
 
     def _save_job_snapshot_store(self, store: dict) -> None:
-        with open(JOB_POST_SNAPSHOT_STORE_PATH, "w", encoding="utf-8") as handle:
-            json.dump(store, handle, indent=2)
+        try:
+            import os
+            os.makedirs(os.path.dirname(JOB_POST_SNAPSHOT_STORE_PATH) or ".", exist_ok=True)
+            with open(JOB_POST_SNAPSHOT_STORE_PATH, "w", encoding="utf-8") as handle:
+                json.dump(store, handle, indent=2)
+        except Exception as exc:
+            log.warning("job_snapshot_store_save_failed", error=str(exc))
 
     def _load_persisted_job_history(self, company_name: str) -> Optional[dict]:
         store = self._load_job_snapshot_store()
@@ -510,12 +515,13 @@ class EnrichmentPipeline:
         ]
         ai_roles = [job for job in deduped_jobs if any(keyword in job.lower() for keyword in ai_keywords)]
         observed_at = datetime.now(timezone.utc).isoformat()
-        self._persist_job_snapshot(
-            company_name=company_name,
-            source_attribution=source_attribution,
-            role_titles=deduped_jobs,
-            observed_at=observed_at,
-        )
+        if deduped_jobs:
+            self._persist_job_snapshot(
+                company_name=company_name,
+                source_attribution=source_attribution,
+                role_titles=deduped_jobs,
+                observed_at=observed_at,
+            )
         merged_history = self._merge_job_histories(
             catalog_record.get("job_history") if catalog_record else None,
             self._load_persisted_job_history(company_name),
