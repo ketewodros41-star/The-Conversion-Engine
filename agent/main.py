@@ -215,6 +215,15 @@ async def process_prospect(prospect: ProspectRequest) -> dict:
 
 @app.post("/webhook/email/inbound")
 async def handle_inbound_email(webhook: InboundEmailWebhook):
+    try:
+        return await _handle_inbound_email_inner(webhook)
+    except Exception as exc:
+        import traceback
+        log.error("inbound_email_unhandled", error=str(exc), tb=traceback.format_exc())
+        raise HTTPException(status_code=500, detail={"error": str(exc), "type": type(exc).__name__})
+
+
+async def _handle_inbound_email_inner(webhook: InboundEmailWebhook):
     log.info("inbound_email_received", from_email=webhook.from_email, subject=webhook.subject)
     await email_handler.process_inbound_reply(webhook.model_dump())
 
@@ -226,11 +235,14 @@ async def handle_inbound_email(webhook: InboundEmailWebhook):
     reply_intent = outreach_gen.classify_reply_intent(webhook.body)
 
     if reply_intent == "schedule":
-        await crm.mark_warm_lead(
-            contact["id"],
-            sms_consent=str(contact.get("sms_consent", "")).lower() == "true",
-            source="email_reply_schedule_intent",
-        )
+        try:
+            await crm.mark_warm_lead(
+                contact["id"],
+                sms_consent=str(contact.get("sms_consent", "")).lower() == "true",
+                source="email_reply_schedule_intent",
+            )
+        except Exception as exc:
+            log.warning("mark_warm_lead_failed_continuing", error=str(exc))
         contact["warm_lead"] = "true"
         slots = await calendar.get_available_slots(days_ahead=7)
         response = outreach_gen.generate_scheduling_reply(
