@@ -201,7 +201,11 @@ Format as JSON: {{"subject": "...", "body": "...", "word_count": N, "confidence_
 
         if any(w in body_lower for w in ["unsubscribe", "remove me", "stop emailing", "not interested"]):
             return "unsubscribe"
-        if any(w in body_lower for w in ["schedule", "book", "call", "meeting", "calendar", "available", "time"]):
+        if any(w in body_lower for w in [
+            "schedule", "book", "call", "meeting", "calendar", "available", "time",
+            "chat", "next week", "monday", "tuesday", "wednesday", "thursday", "friday",
+            "afternoon", "morning", "happy to connect", "happy to chat", "works for me",
+        ]):
             return "schedule"
         if any(w in body_lower for w in ["tell me more", "how does", "what do you", "curious", "interesting"]):
             return "qualify"
