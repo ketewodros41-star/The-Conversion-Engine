@@ -14,9 +14,10 @@ from event_bus import EventBus
 
 log = structlog.get_logger()
 
-CALCOM_BASE_URL = os.getenv("CALCOM_URL", "http://localhost:3000")
+CALCOM_API_BASE = "https://api.cal.com"
 CALCOM_API_KEY = os.getenv("CALCOM_API_KEY", "")
-DISCOVERY_CALL_EVENT_TYPE_ID = int(os.getenv("CALCOM_EVENT_TYPE_ID", "1"))
+CALCOM_USERNAME = os.getenv("CALCOM_USERNAME", "kidus-tewodros-e4zags")
+DISCOVERY_CALL_EVENT_TYPE_ID = int(os.getenv("CALCOM_EVENT_TYPE_ID", "5454418"))
 
 
 class CalComBooking:
@@ -32,10 +33,11 @@ class CalComBooking:
         return {
             "Authorization": f"Bearer {CALCOM_API_KEY}",
             "Content-Type": "application/json",
+            "cal-api-version": "2024-08-13",
         }
 
     def generate_booking_link(self) -> str:
-        return f"{CALCOM_BASE_URL.rstrip('/')}/bookings/{DISCOVERY_CALL_EVENT_TYPE_ID}"
+        return f"https://cal.com/{CALCOM_USERNAME}/30min"
 
     async def get_available_slots(self, days_ahead: int = 7) -> list:
         start = datetime.now(timezone.utc)
@@ -44,7 +46,7 @@ class CalComBooking:
         async with httpx.AsyncClient() as client:
             try:
                 resp = await client.get(
-                    f"{CALCOM_BASE_URL}/api/v1/slots",
+                    f"{CALCOM_API_BASE}/v2/slots/available",
                     headers=self._headers(),
                     params={
                         "eventTypeId": DISCOVERY_CALL_EVENT_TYPE_ID,
@@ -54,7 +56,8 @@ class CalComBooking:
                     },
                 )
                 resp.raise_for_status()
-                slots_data = resp.json().get("slots", {})
+                body = resp.json()
+                slots_data = body.get("data", {}).get("slots", body.get("slots", {}))
                 formatted = []
                 for _, day_slots in slots_data.items():
                     for slot in day_slots[:2]:
@@ -98,21 +101,21 @@ class CalComBooking:
                 payload = {
                     "eventTypeId": DISCOVERY_CALL_EVENT_TYPE_ID,
                     "start": slot_id,
-                    "responses": {
+                    "attendee": {
                         "name": attendee_name,
                         "email": attendee_email,
-                        "phone": attendee_phone or "",
+                        "timeZone": "America/New_York",
+                        "language": "en",
+                        "phoneNumber": attendee_phone or "",
                         "notes": context_brief or "Discovery call booked by Tenacious Conversion Engine [DRAFT]",
                     },
-                    "timeZone": "America/New_York",
-                    "language": "en",
                     "metadata": {
                         "source": "tenacious_conversion_engine",
                         "is_draft": "true",
                     },
                 }
                 resp = await client.post(
-                    f"{CALCOM_BASE_URL}/api/v1/bookings",
+                    f"{CALCOM_API_BASE}/v2/bookings",
                     headers=self._headers(),
                     json=payload,
                 )
@@ -140,7 +143,7 @@ class CalComBooking:
         async with httpx.AsyncClient() as client:
             try:
                 resp = await client.get(
-                    f"{CALCOM_BASE_URL}/api/v1/bookings/{booking_id}",
+                    f"{CALCOM_API_BASE}/v2/bookings/{booking_id}",
                     headers=self._headers(),
                 )
                 resp.raise_for_status()
