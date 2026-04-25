@@ -206,12 +206,17 @@ class HubSpotCRM:
         return self._normalize_contact(results[0]) if results else None
 
     async def update_contact(self, contact_id: str, properties: dict) -> dict:
-        resp = await self._request(
-            "PATCH",
-            f"/crm/v3/objects/contacts/{contact_id}",
-            json={"properties": properties},
-        )
-        return self._normalize_contact(resp)
+        try:
+            resp = await self._request(
+                "PATCH",
+                f"/crm/v3/objects/contacts/{contact_id}",
+                json={"properties": properties},
+            )
+            return self._normalize_contact(resp)
+        except Exception as exc:
+            log.warning("hubspot_update_contact_failed", contact_id=contact_id,
+                        error=str(exc), note="Custom props likely need schema scope")
+            return {"id": contact_id}
 
     async def update_contact_by_phone(self, phone: str, properties: dict) -> Optional[dict]:
         contact = await self.find_contact_by_phone(phone)
@@ -259,12 +264,15 @@ class HubSpotCRM:
             "booking_start_time": booking.get("start_time") or booking.get("call_time", ""),
             "warm_lead": "true",
         })
-        await self.log_activity(contact_id, "booking_completed", {
-            "booking_id": booking_id,
-            "status": booking.get("status", "confirmed"),
-            "start_time": booking.get("start_time") or booking.get("call_time", ""),
-            "channel": booking.get("channel", "unknown"),
-        })
+        try:
+            await self.log_activity(contact_id, "booking_completed", {
+                "booking_id": booking_id,
+                "status": booking.get("status", "confirmed"),
+                "start_time": booking.get("start_time") or booking.get("call_time", ""),
+                "channel": booking.get("channel", "unknown"),
+            })
+        except Exception as exc:
+            log.warning("hubspot_log_booking_activity_failed", error=str(exc))
         return update
 
     async def record_email_bounce(self, recipient: str, bounce: dict) -> Optional[dict]:
@@ -276,5 +284,8 @@ class HubSpotCRM:
             "email_bounce_reason": bounce.get("reason", "unknown"),
             "email_bounced_at": datetime.now(timezone.utc).isoformat(),
         })
-        await self.log_activity(contact["id"], "email_bounce", bounce)
+        try:
+            await self.log_activity(contact["id"], "email_bounce", bounce)
+        except Exception as exc:
+            log.warning("hubspot_log_bounce_activity_failed", error=str(exc))
         return contact

@@ -87,23 +87,29 @@ async def validation_exception_handler(request, exc: RequestValidationError):
 
 
 async def _handle_email_bounce_event(event: dict) -> None:
-    await crm.record_email_bounce(event["recipient"], event)
+    try:
+        await crm.record_email_bounce(event["recipient"], event)
+    except Exception as exc:
+        log.warning("email_bounce_handler_failed", error=str(exc))
 
 
 async def _handle_calcom_booking_completed(event: dict) -> None:
-    contact = None
-    if event.get("attendee_email"):
-        contact = await crm.find_contact_by_email(event["attendee_email"])
-    if not contact and event.get("attendee_phone"):
-        contact = await crm.find_contact_by_phone(event["attendee_phone"])
-    if not contact:
-        log.warning("calcom_booking_contact_not_found", booking_id=event.get("booking_id"))
-        return
-    await crm.record_booking_completion(contact["id"], {
-        **event,
-        "channel": "calcom",
-        "status": event.get("status", "confirmed"),
-    })
+    try:
+        contact = None
+        if event.get("attendee_email"):
+            contact = await crm.find_contact_by_email(event["attendee_email"])
+        if not contact and event.get("attendee_phone"):
+            contact = await crm.find_contact_by_phone(event["attendee_phone"])
+        if not contact:
+            log.warning("calcom_booking_contact_not_found", booking_id=event.get("booking_id"))
+            return
+        await crm.record_booking_completion(contact["id"], {
+            **event,
+            "channel": "calcom",
+            "status": event.get("status", "confirmed"),
+        })
+    except Exception as exc:
+        log.warning("calcom_booking_handler_failed", error=str(exc))
 
 
 email_handler.on_bounce(_handle_email_bounce_event)
@@ -303,59 +309,74 @@ async def _handle_inbound_email_inner(webhook: InboundEmailWebhook):
 
 @app.post("/webhook/email/bounce")
 async def handle_email_bounce(webhook: EmailBounceWebhook):
-    event = await email_handler.process_bounce_event(webhook.model_dump())
-    return {"status": "handled", "event": event["event_type"]}
+    try:
+        event = await email_handler.process_bounce_event(webhook.model_dump())
+        return {"status": "handled", "event": event["event_type"]}
+    except Exception as exc:
+        log.error("email_bounce_webhook_failed", error=str(exc))
+        raise HTTPException(status_code=500, detail={"error": str(exc), "type": type(exc).__name__})
 
 
 @app.post("/webhook/sms/inbound")
 async def handle_inbound_sms(webhook: InboundSMSWebhook):
-    log.info("inbound_sms_received", from_number=webhook.from_number)
+    try:
+        log.info("inbound_sms_received", from_number=webhook.from_number)
 
-    if webhook.message.strip().upper() in {"STOP", "UNSUBSCRIBE", "QUIT", "CANCEL"}:
-        await sms_handler.handle_stop(webhook.from_number)
-        await crm.update_contact_by_phone(
-            webhook.from_number,
-            {"sms_opt_out": "true", "sms_opt_out_at": webhook.timestamp},
+        if webhook.message.strip().upper() in {"STOP", "UNSUBSCRIBE", "QUIT", "CANCEL"}:
+            await sms_handler.handle_stop(webhook.from_number)
+            await crm.update_contact_by_phone(
+                webhook.from_number,
+                {"sms_opt_out": "true", "sms_opt_out_at": webhook.timestamp},
+            )
+            return {"status": "stopped"}
+
+        contact = await crm.find_contact_by_phone(webhook.from_number)
+        sms_decision = channel_policy.can_accept_inbound_sms(contact)
+        if not sms_decision.allowed:
+            log.warning("unexpected_cold_sms", number=webhook.from_number, reason=sms_decision.reason)
+            return {"status": "ignored_cold_contact"}
+
+        booking_result = await sms_handler.handle_scheduling_message(
+            contact=contact,
+            message=webhook.message,
+            calendar=calendar,
         )
-        return {"status": "stopped"}
 
-    contact = await crm.find_contact_by_phone(webhook.from_number)
-    sms_decision = channel_policy.can_accept_inbound_sms(contact)
-    if not sms_decision.allowed:
-        log.warning("unexpected_cold_sms", number=webhook.from_number, reason=sms_decision.reason)
-        return {"status": "ignored_cold_contact"}
-
-    booking_result = await sms_handler.handle_scheduling_message(
-        contact=contact,
-        message=webhook.message,
-        calendar=calendar,
-    )
-
-    if booking_result["booked"]:
-        await crm.record_booking_completion(contact["id"], {
-            "id": booking_result["event_id"],
-            "booking_id": booking_result["event_id"],
-            "status": "confirmed",
-            "call_time": booking_result["call_time"],
-            "channel": "sms",
-        })
-        await crm.log_activity(
-            contact_id=contact["id"],
-            activity_type="discovery_call_booked",
-            details={
-                "channel": "sms",
+        if booking_result["booked"]:
+            await crm.record_booking_completion(contact["id"], {
+                "id": booking_result["event_id"],
+                "booking_id": booking_result["event_id"],
+                "status": "confirmed",
                 "call_time": booking_result["call_time"],
-                "cal_event_id": booking_result["event_id"],
-                "timestamp": webhook.timestamp,
-            },
-        )
-    return {"status": "handled", "booked": booking_result["booked"]}
+                "channel": "sms",
+            })
+            try:
+                await crm.log_activity(
+                    contact_id=contact["id"],
+                    activity_type="discovery_call_booked",
+                    details={
+                        "channel": "sms",
+                        "call_time": booking_result["call_time"],
+                        "cal_event_id": booking_result["event_id"],
+                        "timestamp": webhook.timestamp,
+                    },
+                )
+            except Exception as exc:
+                log.warning("sms_booking_log_activity_failed", error=str(exc))
+        return {"status": "handled", "booked": booking_result["booked"]}
+    except Exception as exc:
+        log.error("sms_inbound_webhook_failed", error=str(exc))
+        raise HTTPException(status_code=500, detail={"error": str(exc), "type": type(exc).__name__})
 
 
 @app.post("/webhook/calcom/booking")
 async def handle_calcom_booking(webhook: CalComBookingWebhook):
-    event = await calendar.process_booking_webhook(webhook.model_dump())
-    return {"status": "handled", "booking_id": event.get("booking_id")}
+    try:
+        event = await calendar.process_booking_webhook(webhook.model_dump())
+        return {"status": "handled", "booking_id": event.get("booking_id")}
+    except Exception as exc:
+        log.error("calcom_booking_webhook_failed", error=str(exc))
+        raise HTTPException(status_code=500, detail={"error": str(exc), "type": type(exc).__name__})
 
 
 @app.post("/api/process-prospect")
