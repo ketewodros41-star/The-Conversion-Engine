@@ -116,6 +116,9 @@ class HubSpotCRM:
         now_ts = datetime.now(timezone.utc).isoformat()
 
         standard_props, custom_props = self._split_props(properties)
+        # Always set lifecycle stage and lead status so standard fields are non-null
+        standard_props.setdefault("hs_lead_status", "NEW")
+        standard_props.setdefault("lifecyclestage", "lead")
 
         if existing:
             contact_id = existing[0]["id"]
@@ -258,11 +261,10 @@ class HubSpotCRM:
 
     async def record_booking_completion(self, contact_id: str, booking: dict) -> dict:
         booking_id = booking.get("booking_id") or booking.get("id")
+        # Write what we can to standard fields — custom props need schema scope
         update = await self.update_contact(contact_id, {
-            "booking_id": booking_id,
-            "booking_status": booking.get("status", "confirmed"),
-            "booking_start_time": booking.get("start_time") or booking.get("call_time", ""),
-            "warm_lead": "true",
+            "hs_lead_status": "CONNECTED",
+            "lifecyclestage": "opportunity",
         })
         try:
             await self.log_activity(contact_id, "booking_completed", {
