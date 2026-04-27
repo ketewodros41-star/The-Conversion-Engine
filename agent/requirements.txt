@@ -33,7 +33,7 @@ numpy==1.26.0              # Numerical operations
 scipy==1.13.0              # Statistical tests (two-proportion z-test for Delta A)
 
 # Observability
-langfuse==2.30.0           # Per-trace cost attribution, OpenTelemetry
+langfuse==4.5.0            # Per-trace cost attribution, OpenTelemetry
 opentelemetry-sdk==1.24.0  # OTel base
 
 # API server

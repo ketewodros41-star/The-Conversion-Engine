@@ -119,7 +119,13 @@ class CalComBooking:
                     headers=self._headers(),
                     json=payload,
                 )
-                resp.raise_for_status()
+                if not resp.is_success:
+                    log.error("calcom_booking_failed", status=resp.status_code, body=resp.text)
+                    return {
+                        "id": f"synthetic_booking_{slot_id}",
+                        "attendee_email": attendee_email,
+                        "error": resp.text,
+                    }
                 booking = resp.json()
                 booking["attendee_email"] = attendee_email
                 booking["attendee_phone"] = attendee_phone or ""

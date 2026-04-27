@@ -4,17 +4,28 @@ Multi-agent autonomous lead generation and conversion system.
 """
 
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from datetime import datetime, timezone
 from typing import Optional
 
 import structlog
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from calcom_booking import CalComBooking
+try:
+    from langfuse import observe, get_client as _lf_get_client
+    LANGFUSE_ENABLED = True
+except Exception:
+    LANGFUSE_ENABLED = False
+    def observe(func=None, **_):
+        def _dec(fn): return fn
+        return _dec(func) if func else _dec
+
+from calcom_booking import CalComBooking, DISCOVERY_CALL_EVENT_TYPE_ID
 from channel_policy import ChannelPolicy
 from email_handler import EmailHandler
 from enrichment import EnrichmentPipeline
@@ -23,8 +34,6 @@ from hubspot_crm import HubSpotCRM
 from icp_classifier import ICPClassifier
 from outreach_generator import OutreachGenerator
 from sms_handler import SMSHandler
-
-load_dotenv()
 log = structlog.get_logger()
 
 LIVE_MODE = os.getenv("LIVE_MODE", "false").lower() == "true"
@@ -116,8 +125,23 @@ email_handler.on_bounce(_handle_email_bounce_event)
 calendar.on_booking_completed(_handle_calcom_booking_completed)
 
 
+@observe(name="process_prospect")
 async def process_prospect(prospect: ProspectRequest) -> dict:
     start_time = datetime.now(timezone.utc)
+    stage_timings = {}
+
+    if LANGFUSE_ENABLED:
+        lf = _lf_get_client()
+        lf.update_current_span(
+            name=f"{prospect.company_name} — {prospect.contact_name}",
+            metadata={
+                "crunchbase_id": prospect.crunchbase_id,
+                "live_mode": LIVE_MODE,
+                "is_synthetic": prospect.is_synthetic,
+            },
+        )
+        lf.set_current_trace_io(input=prospect.model_dump())
+
     log.info(
         "prospect_processing_started",
         company=prospect.company_name,
@@ -125,28 +149,39 @@ async def process_prospect(prospect: ProspectRequest) -> dict:
         live_mode=LIVE_MODE,
     )
 
+    t = datetime.now(timezone.utc)
     hiring_brief = await enrichment.build_hiring_signal_brief(
         crunchbase_id=prospect.crunchbase_id,
         company_name=prospect.company_name,
     )
+    stage_timings["enrichment_ms"] = int((datetime.now(timezone.utc) - t).total_seconds() * 1000)
+
+    t = datetime.now(timezone.utc)
     competitor_brief = await enrichment.build_competitor_gap_brief(
         crunchbase_id=prospect.crunchbase_id,
         sector=hiring_brief["prospect"]["industry"],
         prospect_ai_score=hiring_brief["signals"]["ai_maturity"]["score"],
     )
+    stage_timings["competitor_ms"] = int((datetime.now(timezone.utc) - t).total_seconds() * 1000)
 
+    t = datetime.now(timezone.utc)
     classification = icp_classifier.classify(hiring_brief)
+    stage_timings["classification_ms"] = int((datetime.now(timezone.utc) - t).total_seconds() * 1000)
+
     email_variant = (
         classification["primary_segment"]
         if classification["confidence"] >= 0.65 else
         "exploratory"
     )
 
+    t = datetime.now(timezone.utc)
     bench_check = await enrichment.check_bench_availability(
         required_skills=hiring_brief["signals"]["tech_stack"]["details"]["bench_match"]
         if hiring_brief["signals"]["tech_stack"]["present"] else []
     )
+    stage_timings["bench_check_ms"] = int((datetime.now(timezone.utc) - t).total_seconds() * 1000)
 
+    t = datetime.now(timezone.utc)
     outreach_email = outreach_gen.generate_outbound_email(
         prospect=prospect.model_dump(),
         hiring_brief=hiring_brief,
@@ -155,7 +190,9 @@ async def process_prospect(prospect: ProspectRequest) -> dict:
         bench_available=bench_check["available"],
         live_mode=LIVE_MODE,
     )
+    stage_timings["outreach_gen_ms"] = int((datetime.now(timezone.utc) - t).total_seconds() * 1000)
 
+    t = datetime.now(timezone.utc)
     email_result = await email_handler.send_outbound(
         to_email=prospect.contact_email,
         subject=outreach_email["subject"],
@@ -167,26 +204,32 @@ async def process_prospect(prospect: ProspectRequest) -> dict:
             "is_synthetic": prospect.is_synthetic,
         },
     )
+    stage_timings["email_send_ms"] = int((datetime.now(timezone.utc) - t).total_seconds() * 1000)
 
+    hubspot_props = {
+        "firstname": prospect.contact_name.split()[0],
+        "lastname": " ".join(prospect.contact_name.split()[1:]),
+        "jobtitle": prospect.contact_title,
+        "company": prospect.company_name,
+        "crunchbase_id": prospect.crunchbase_id,
+        "icp_segment": email_variant,
+        "icp_confidence": str(round(classification["confidence"], 4)),
+        "ai_maturity_score": str(hiring_brief["signals"]["ai_maturity"]["score"]),
+        "funding_event": hiring_brief["signals"]["funding_event"].get("brief_language", ""),
+        "job_post_velocity": hiring_brief["signals"]["job_post_velocity"].get("brief_language", ""),
+        "leadership_change": hiring_brief["signals"]["leadership_change"].get("brief_language", ""),
+        "last_enriched_at": start_time.isoformat(),
+        "outreach_variant": email_variant,
+        "is_synthetic": str(prospect.is_synthetic).lower(),
+    }
+
+    t = datetime.now(timezone.utc)
     hubspot_contact = await crm.upsert_contact(
         email=prospect.contact_email,
-        properties={
-            "firstname": prospect.contact_name.split()[0],
-            "lastname": " ".join(prospect.contact_name.split()[1:]),
-            "jobtitle": prospect.contact_title,
-            "company": prospect.company_name,
-            "crunchbase_id": prospect.crunchbase_id,
-            "icp_segment": email_variant,
-            "icp_confidence": str(classification["confidence"]),
-            "ai_maturity_score": str(hiring_brief["signals"]["ai_maturity"]["score"]),
-            "funding_event": hiring_brief["signals"]["funding_event"].get("brief_language", ""),
-            "job_post_velocity": hiring_brief["signals"]["job_post_velocity"].get("brief_language", ""),
-            "leadership_change": hiring_brief["signals"]["leadership_change"].get("brief_language", ""),
-            "last_enriched_at": start_time.isoformat(),
-            "outreach_variant": email_variant,
-            "is_synthetic": str(prospect.is_synthetic).lower(),
-        },
+        properties=hubspot_props,
     )
+    stage_timings["hubspot_ms"] = int((datetime.now(timezone.utc) - t).total_seconds() * 1000)
+
     await crm.log_activity(
         contact_id=hubspot_contact["id"],
         activity_type="outbound_email_sent",
@@ -198,13 +241,39 @@ async def process_prospect(prospect: ProspectRequest) -> dict:
         },
     )
 
+    t = datetime.now(timezone.utc)
+    try:
+        cal_slots = await calendar.get_available_slots(days_ahead=7)
+    except Exception:
+        cal_slots = []
+    stage_timings["calcom_ms"] = int((datetime.now(timezone.utc) - t).total_seconds() * 1000)
+
     elapsed_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
+
+    if LANGFUSE_ENABLED:
+        lf = _lf_get_client()
+        lf.set_current_trace_io(
+            output={
+                "icp_segment": email_variant,
+                "icp_confidence": classification["confidence"],
+                "email_sent": email_result["sent"],
+                "hubspot_id": hubspot_contact.get("id"),
+                "elapsed_ms": elapsed_ms,
+                "stage_timings": stage_timings,
+            },
+        )
+        lf.score_current_trace(name="email_delivered", value=1.0 if email_result["sent"] else 0.0)
+        lf.score_current_trace(name="icp_confidence", value=float(classification["confidence"]))
+        lf.score_current_trace(name="ai_maturity_score", value=float(hiring_brief["signals"]["ai_maturity"]["score"]) / 3)
+        lf.flush()
+
     log.info(
         "prospect_processing_complete",
         company=prospect.company_name,
         elapsed_ms=elapsed_ms,
         email_sent=email_result["sent"],
         hubspot_id=hubspot_contact.get("id"),
+        langfuse_enabled=LANGFUSE_ENABLED,
     )
     return {
         "status": "processed",
@@ -216,6 +285,44 @@ async def process_prospect(prospect: ProspectRequest) -> dict:
         "hubspot_id": hubspot_contact.get("id"),
         "elapsed_ms": elapsed_ms,
         "live_mode": LIVE_MODE,
+        "enrichment": hiring_brief,
+        "competitor_brief": competitor_brief,
+        "classification": classification,
+        "outreach": {
+            "subject": outreach_email["subject"],
+            "body": outreach_email["body"],
+            "variant": email_variant,
+            "is_draft": True,
+        },
+        "email_delivery": {
+            "sent": email_result.get("sent", False),
+            "message_id": email_result.get("message_id"),
+            "recipient": email_result.get("recipient"),
+            "original_to": prospect.contact_email,
+            "routed_to_sink": not LIVE_MODE,
+            "sandbox_sink": os.getenv("STAFF_SINK_EMAIL") if not LIVE_MODE else None,
+            "error": email_result.get("error"),
+        },
+        "hubspot": {
+            "contact_id": hubspot_contact.get("id"),
+            "properties_written": hubspot_props,
+        },
+        "calcom": {
+            "slots": cal_slots,
+            "booking_link": calendar.generate_booking_link(),
+            "event_type_id": DISCOVERY_CALL_EVENT_TYPE_ID,
+            "status": "slots_available" if cal_slots else "no_slots",
+        },
+        "sms_policy": {
+            "warm_lead_status": False,
+            "sms_eligible": False,
+            "reason": "SMS only after email reply with schedule intent + SMS consent",
+            "provider": "Africa's Talking (sandbox)",
+            "username": os.getenv("AT_USERNAME", "sandbox"),
+            "sender_id": os.getenv("AT_SENDER_ID", "TENACIOUS"),
+            "next_trigger": "POST /webhook/email/inbound with intent=schedule",
+        },
+        "stage_timings": stage_timings,
     }
 
 
