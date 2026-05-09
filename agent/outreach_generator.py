@@ -5,6 +5,7 @@ Preserves Tenacious tone from style_guide.md.
 """
 
 import os
+import time
 from typing import Optional
 from openai import OpenAI
 import structlog
@@ -93,10 +94,21 @@ Rules:
         context = self._build_email_context(prospect, signals, competitor_brief, segment)
 
         # Use GPT-4o-mini via OpenRouter to generate the email
+        ttft_ms: Optional[float] = None
+        tokens_per_second: float = 0.0
+
         try:
-            response = self.client.chat.completions.create(
+            import json
+
+            t_start = time.perf_counter()
+            ttft_ms = None
+            chunks = []
+            token_count = 0
+
+            stream = self.client.chat.completions.create(
                 model="openai/gpt-4o-mini",
                 max_tokens=400,
+                stream=True,
                 messages=[
                     {"role": "system", "content": self._build_system_prompt()},
                     {"role": "user", "content": f"""Generate a signal-grounded outbound email for this prospect.
@@ -121,8 +133,27 @@ Format as JSON: {{"subject": "...", "body": "...", "word_count": N, "confidence_
                 ],
             )
 
-            import json
-            content = response.choices[0].message.content
+            for chunk in stream:
+                delta = chunk.choices[0].delta.content if chunk.choices else None
+                if delta:
+                    if ttft_ms is None:
+                        ttft_ms = (time.perf_counter() - t_start) * 1000
+                    chunks.append(delta)
+                    token_count += 1
+
+            t_end = time.perf_counter()
+            decode_duration_s = t_end - (t_start + (ttft_ms or 0) / 1000)
+            tokens_per_second = round(token_count / decode_duration_s, 1) if decode_duration_s > 0 else 0.0
+
+            log.info(
+                "outreach_generated",
+                company=prospect["company_name"],
+                ttft_ms=round(ttft_ms, 1) if ttft_ms is not None else None,
+                tokens_per_second=tokens_per_second,
+                token_count=token_count,
+            )
+
+            content = "".join(chunks)
             # Parse JSON from response
             start = content.find('{')
             end = content.rfind('}') + 1
@@ -157,6 +188,8 @@ Format as JSON: {{"subject": "...", "body": "...", "word_count": N, "confidence_
             "crunchbase_id": prospect.get("crunchbase_id"),
             "is_synthetic": prospect.get("is_synthetic", True),
             "live_mode": live_mode,
+            "ttft_ms": round(ttft_ms, 1) if ttft_ms is not None else None,
+            "tokens_per_second": tokens_per_second,
         }
 
         return email_data
