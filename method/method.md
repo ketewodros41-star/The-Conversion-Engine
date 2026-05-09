@@ -11,6 +11,8 @@ Root cause: the agent treated weak signals as if they were strong signals. In pr
 
 Why SCAP addresses the root cause: SCAP does not try to guess better facts after generation. It changes how every signal is phrased before the LLM writes the email by injecting signal-specific instructions derived from the confidence attached to each input signal.
 
+Why SCAP has a ceiling: SCAP reduces average signal over-claiming by adding confidence-calibration instructions to the system prompt before generation. It does not eliminate the failure because prompting is runtime steering — the model's weights are unchanged, and all pretrained tendencies toward fluency, plausibility, and confident assertion remain intact. When the instruction competes with those tendencies on a low-signal input, the instruction can be outweighed. The residual violations in P-005 (trigger rate above zero after SCAP) are the signature of this: borderline inputs where the model's internal representation did not cleanly separate over-claiming from grounded language, so the prompt biased but could not reliably override the output distribution. The Week 11 LoRA judge addresses this gap not by adding a better instruction but by changing the effective weights (W_effective = W + BA) so that inputs resembling the failure pattern map to different internal representations on every forward pass — a persistent correction in weight space rather than a conditional reminder in context.
+
 ---
 
 ## 2. Re-Implementable Mechanism Spec
@@ -198,3 +200,13 @@ Artifacts to inspect after running:
 ## 8. Why This Mechanism Was Chosen
 
 `P-009` is costlier than `P-005`, but it is a policy and handoff problem, not a phrasing problem. SCAP v2 was selected because it directly attacks the highest-ROI failure mode that can be reduced by a prompt-time mechanism without pretending to solve inventory or staffing-control failures that belong elsewhere in the system.
+
+---
+
+## 9. Bench Availability Constraint — Scaffolding Pre-Call Pattern
+
+The bench availability check (`check_bench_availability()` in `agent/main.py`) enforces a hard constraint on every outreach generation run. It is not a model-invoked tool. It is a scaffolding pre-call: the runtime executes it unconditionally before the model receives any input, and injects the result into the generation context as `bench_available: bool`.
+
+The model never decides whether the check runs. The runtime owns that execution, making the constraint deterministic rather than probabilistic. A model-invoked tool would be subject to instruction drift — the model could fail to call it due to prompt phrasing, reasoning drift, or instruction competition. A scaffolding pre-call cannot be bypassed regardless of what the model generates, because the model is not given the opportunity to make that decision.
+
+Design rule: use scaffolding pre-calls for hard constraints that must execute on every run and cannot be bypassed by the model. Use model-invoked tools for soft constraints where model judgment about when to use an external resource is acceptable.
